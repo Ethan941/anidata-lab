@@ -35,7 +35,7 @@
         "graphMode": "none",
         "justifyMode": "auto",
         "orientation": "auto",
-        "reduceOptions": { "calcs": ["count"], "fields": "", "values": false },
+        "reduceOptions": { "calcs": ["lastNotNull"], "fields": "", "values": false },
         "textMode": "auto"
       },
       "title": "Total animes indexés",
@@ -44,6 +44,14 @@
         {
           "datasource": { "type": "elasticsearch", "uid": "elasticsearch-anime" },
           "metrics": [{ "type": "count", "id": "1" }],
+          "bucketAggs": [
+            {
+              "type": "date_histogram",
+              "id": "2",
+              "field": "@timestamp",
+              "settings": { "interval": "auto", "min_doc_count": "0", "trimEdges": "0" }
+            }
+          ],
           "query": "*",
           "refId": "A"
         }
@@ -65,7 +73,7 @@
         "graphMode": "none",
         "justifyMode": "auto",
         "orientation": "auto",
-        "reduceOptions": { "calcs": ["mean"], "fields": "/^score$/", "values": false },
+        "reduceOptions": { "calcs": ["lastNotNull"], "fields": "", "values": false },
         "textMode": "auto"
       },
       "title": "Score moyen",
@@ -74,6 +82,14 @@
         {
           "datasource": { "type": "elasticsearch", "uid": "elasticsearch-anime" },
           "metrics": [{ "type": "avg", "id": "1", "field": "score" }],
+          "bucketAggs": [
+            {
+              "type": "date_histogram",
+              "id": "2",
+              "field": "@timestamp",
+              "settings": { "interval": "auto", "min_doc_count": "0", "trimEdges": "0" }
+            }
+          ],
           "query": "*",
           "refId": "A"
         }
@@ -98,13 +114,13 @@
         "reduceOptions": { "calcs": ["count"], "fields": "", "values": false },
         "tooltip": { "mode": "single" }
       },
-      "title": "Répartition par type",
+      "title": "Répartition par genres",
       "type": "piechart",
       "targets": [
         {
           "datasource": { "type": "elasticsearch", "uid": "elasticsearch-anime" },
           "metrics": [{ "type": "count", "id": "1" }],
-          "bucketAggs": [{ "type": "terms", "id": "2", "field": "type.keyword", "settings": { "size": "10", "order": "desc", "orderBy": "_count" } }],
+          "bucketAggs": [{ "type": "terms", "id": "2", "field": "genres.keyword", "settings": { "size": "10", "order": "desc", "orderBy": "_count" } }],
           "query": "*",
           "refId": "A"
         }
@@ -147,6 +163,44 @@
           "bucketAggs": [{ "type": "terms", "id": "2", "field": "studios.keyword", "settings": { "size": "10", "order": "desc", "orderBy": "_count" } }],
           "query": "*",
           "refId": "A"
+        }
+      ]
+    },
+    {
+      "datasource": { "type": "elasticsearch", "uid": "elasticsearch-anime" },
+      "fieldConfig": {
+        "defaults": {
+          "color": { "mode": "continuous-YlOrRd" },
+          "custom": {}
+        },
+        "overrides": []
+      },
+      "gridPos": { "h": 10, "w": 12, "x": 12, "y": 14 },
+      "id": 6,
+      "options": {
+        "calculate": false,
+        "cellGap": 2,
+        "cellValues": { "unit": "none" },
+        "color": { "exponent": 0.5, "fill": "dark-orange", "mode": "scheme", "reverse": false, "scale": "exponential", "scheme": "YlOrRd", "steps": 64 },
+        "filterValues": { "le": 1e-9 },
+        "legend": { "show": true },
+        "rowsFrame": { "layout": "auto" },
+        "showValue": "never",
+        "tooltip": { "show": true, "yHistogram": false },
+        "yAxis": { "axisPlacement": "left", "reverse": false, "unit": "short" }
+      },
+      "title": "Heatmap ratings (score vs popularity)",
+      "type": "heatmap",
+      "targets": [
+        {
+          "datasource": { "type": "elasticsearch", "uid": "elasticsearch-anime" },
+          "query": "*",
+          "refId": "A",
+          "metrics": [{ "id": "1", "type": "count" }],
+          "bucketAggs": [
+            { "id": "2", "type": "histogram", "field": "score", "settings": { "interval": "0.5", "min_doc_count": "0" } },
+            { "id": "3", "type": "histogram", "field": "popularity", "settings": { "interval": "500", "min_doc_count": "0" } }
+          ]
         }
       ]
     }

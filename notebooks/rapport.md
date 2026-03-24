@@ -1,6 +1,6 @@
 # rapport1.md
 
-![Capture Grafana](grafana.png)
+![Capture Grafana](images/grafana2.png)
 
 ## Table des matières
 - [Partie 1 - Contexte](#partie-1---contexte)
@@ -10,6 +10,9 @@
 - [Partie 5 - Audit qualite](#partie-5---audit-qualite)
 - [Partie 6 - Profiling automatique](#partie-6---profiling-automatique)
 - [Partie 7 - Conclusion](#partie-7---conclusion)
+- [Validation des objectifs Data Refinement](#validation-des-objectifs-data-refinement)
+- [Règle de pondération des titres (gold)](#règle-de-pondération-des-titres-gold)
+- [Rôle du DAG Airflow (important)](#rôle-du-dag-airflow-important)
 - [Jour 3 - Elasticsearch](#jour-3---elasticsearch)
 - [4. Code de base pour commencer](#4-code-de-base-pour-commencer)
 - [5. Chargement des fichiers CSV](#5-chargement-des-fichiers-csv)
@@ -316,6 +319,21 @@ JSON → pour API / frontend
 dashboard Grafana
 API FastAPI
 reco system
+
+### Validation des objectifs Data Refinement
+
+Oui, la partie **Data Refinement | Nettoyage, enrichissement & Feature Engineering** est atteinte.
+
+Checklist de validation :
+
+- Nettoyage appliqué : doublons, imputation, normalisation des types (`Score`, `Episodes`, `Ranked`, etc.)
+- Encodage/texte traité : normalisation UTF-8/Unicode, nettoyage des caractères spéciaux, support étendu des encodages testés
+- Features métier créées : `weighted_popularity_score`, `dropped_completed_ratio`, `studio_class`, `primary_studio`, `synopsis_length`
+- Export gold réalisé : `data/gold/anime_gold.csv` + `data/gold/anime_gold.json`
+
+Conclusion livrable :
+
+- Le dataset `gold` est bien nettoyé, enrichi, exporté en CSV+JSON, et prêt pour ELK.
 
 ### Règle de pondération des titres (gold)
 
@@ -652,6 +670,16 @@ field : Genres
 X : score
 Y : popularity
 size : count
+
+✅ Mise à jour validée (capture actuelle)
+
+La capture `images/grafana2.png` montre que les panneaux principaux sont maintenant alimentés :
+
+- `Total animes indexés` : 17562
+- `Score moyen` : 6.51
+- `Top 10 studios` : graphique barres visible
+- `Répartition par genres` : graphique donut visible
+- `Heatmap ratings` : panneau ajouté au dashboard
 
 🧠 Ton livrable (checklist)
 
