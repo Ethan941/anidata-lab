@@ -24,7 +24,7 @@ import pandas as pd
 
 
 REPLACEMENT_CHAR = "�"
-ENCODINGS_TO_TRY = ("utf-8", "utf-8-sig", "cp932", "shift_jis")
+ENCODINGS_TO_TRY = ("utf-8", "utf-8-sig", "cp1251", "koi8-r", "utf-16", "cp932", "shift_jis")
 TITLE_COLUMNS = ("Name", "English name", "Japanese name")
 
 

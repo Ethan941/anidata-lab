@@ -32,7 +32,7 @@ PATH_RATINGS = BASE_DIR / "rating_complete.csv"
 PATH_SYNOPSIS = BASE_DIR / "anime_with_synopsis.csv"
 
 # Ordre de test encodages (a adapter si besoin)
-ENCODINGS_TO_TRY = ["utf-8", "utf-8-sig", "cp932", "shift_jis"]
+ENCODINGS_TO_TRY = ["utf-8", "utf-8-sig", "cp1251", "koi8-r", "utf-16", "cp932", "shift_jis"]
 REPLACEMENT_CHAR = "�"
 TITLE_COLUMNS = ["Name", "English name", "Japanese name"]
 
