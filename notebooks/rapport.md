@@ -1709,3 +1709,141 @@ romain@MacBook-Air-de-Romain anidata-lab % docker compose exec airflow-webserver
 --- Graphique 2 : NaN déguisés ---
 ```
 
+Extrait terminal (succès `03_nettoyage.py` depuis la racine `anidata-lab`) :
+
+```text
+romain@MacBook-Air-de-Romain anidata-lab % python3 airflow/dags/03_nettoyage.py
+
+============================================================
+  NETTOYAGE — anime.csv
+============================================================
+
+  Chargement du fichier brut...
+  ✅ Fichier chargé : 17,562 lignes × 35 colonnes
+
+  Colonnes : ['MAL_ID', 'Name', 'Score', 'Genres', 'English name', 'Japanese name', 'Type', 'Episodes', 'Aired', 'Premiered', 'Producers', 'Licensors', 'Studios', 'Source', 'Duration', 'Rating', 'Ranked', 'Popularity', 'Members', 'Favorites', 'Watching', 'Completed', 'On-Hold', 'Dropped', 'Plan to Watch', 'Score-10', 'Score-9', 'Score-8', 'Score-7', 'Score-6', 'Score-5', 'Score-4', 'Score-3', 'Score-2', 'Score-1']
+
+--- Étape 1 : Normalisation des noms de colonnes ---
+  ℹ️    'MAL_ID' → 'mal_id'
+  ℹ️    'Name' → 'name'
+  ℹ️    'Score' → 'score'
+  ℹ️    'Genres' → 'genres'
+  ℹ️    'English name' → 'english_name'
+  ℹ️    'Japanese name' → 'japanese_name'
+  ℹ️    'Type' → 'type'
+  ℹ️    'Episodes' → 'episodes'
+  ℹ️    'Aired' → 'aired'
+  ℹ️    'Premiered' → 'premiered'
+  ℹ️    'Producers' → 'producers'
+  ℹ️    'Licensors' → 'licensors'
+  ℹ️    'Studios' → 'studios'
+  ℹ️    'Source' → 'source'
+  ℹ️    'Duration' → 'duration'
+  ℹ️    'Rating' → 'rating'
+  ℹ️    'Ranked' → 'ranked'
+  ℹ️    'Popularity' → 'popularity'
+  ℹ️    'Members' → 'members'
+  ℹ️    'Favorites' → 'favorites'
+  ℹ️    'Watching' → 'watching'
+  ℹ️    'Completed' → 'completed'
+  ℹ️    'On-Hold' → 'on_hold'
+  ℹ️    'Dropped' → 'dropped'
+  ℹ️    'Plan to Watch' → 'plan_to_watch'
+  ℹ️    'Score-10' → 'score_10'
+  ℹ️    'Score-9' → 'score_9'
+  ℹ️    'Score-8' → 'score_8'
+  ℹ️    'Score-7' → 'score_7'
+  ℹ️    'Score-6' → 'score_6'
+  ℹ️    'Score-5' → 'score_5'
+  ℹ️    'Score-4' → 'score_4'
+  ℹ️    'Score-3' → 'score_3'
+  ℹ️    'Score-2' → 'score_2'
+  ℹ️    'Score-1' → 'score_1'
+  ✅ 35 colonne(s) renommée(s)
+```
+
+Extrait terminal (enchaînement `03_nettoyage.py` puis `04_feature_engineering.py`) :
+
+```text
+romain@MacBook-Air-de-Romain anidata-lab % python3 airflow/dags/03_nettoyage.py
+python3 airflow/dags/04_feature_engineering.py
+
+============================================================
+  NETTOYAGE — anime.csv
+============================================================
+
+  Chargement du fichier brut...
+  ✅ Fichier chargé : 17,562 lignes × 35 colonnes
+
+  Colonnes : ['MAL_ID', 'Name', 'Score', 'Genres', 'English name', 'Japanese name', 'Type', 'Episodes', 'Aired', 'Premiered', 'Producers', 'Licensors', 'Studios', 'Source', 'Duration', 'Rating', 'Ranked', 'Popularity', 'Members', 'Favorites', 'Watching', 'Completed', 'On-Hold', 'Dropped', 'Plan to Watch', 'Score-10', 'Score-9', 'Score-8', 'Score-7', 'Score-6', 'Score-5', 'Score-4', 'Score-3', 'Score-2', 'Score-1']
+
+--- Étape 1 : Normalisation des noms de colonnes ---
+  ℹ️    'MAL_ID' → 'mal_id'
+  ℹ️    'Name' → 'name'
+  ℹ️    'Score' → 'score'
+  ℹ️    'Genres' → 'genres'
+  ℹ️    'English name' → 'english_name'
+  ℹ️    'Japanese name' → 'japanese_name'
+  ℹ️    'Type' → 'type'
+  ℹ️    'Episodes' → 'episodes'
+  ℹ️    'Aired' → 'aired'
+  ℹ️    'Premiered' → 'premiered'
+  ℹ️    'Producers' → 'producers'
+  ℹ️    'Licensors' → 'licensors'
+  ℹ️    'Studios' → 'studios'
+  ℹ️    'Source' → 'source'
+  ℹ️    'Duration' → 'duration'
+  ℹ️    'Rating' → 'rating'
+  ℹ️    'Ranked' → 'ranked'
+  ℹ️    'Popularity' → 'popularity'
+  ℹ️    'Members' → 'members'
+  ℹ️    'Favorites' → 'favorites'
+  ℹ️    'Watching' → 'watching'
+  ℹ️    'Completed' → 'completed'
+  ℹ️    'On-Hold' → 'on_hold'
+  ℹ️    'Dropped' → 'dropped'
+  ℹ️    'Plan to Watch' → 'plan_to_watch'
+  ℹ️    'Score-10' → 'score_10'
+  ℹ️    'Score-9' → 'score_9'
+  ℹ️    'Score-8' → 'score_8'
+  ℹ️    'Score-7' → 'score_7'
+  ℹ️    'Score-6' → 'score_6'
+  ℹ️    'Score-5' → 'score_5'
+  ℹ️    'Score-4' → 'score_4'
+  ℹ️    'Score-3' → 'score_3'
+  ℹ️    'Score-2' → 'score_2'
+  ℹ️    'Score-1' → 'score_1'
+  ✅ 35 colonne(s) renommée(s)
+
+============================================================
+  FEATURE ENGINEERING — Enrichissement du dataset
+============================================================
+
+❌ Fichier introuvable : output/anime_cleaned.csv
+   Lancez d'abord : python 03_nettoyage.py
+romain@MacBook-Air-de-Romain anidata-lab %
+```
+
+Correctif chemins (scripts nettoyage/feature engineering)
+
+C’est corrigé ✅
+
+Le même pattern robuste a été appliqué que sur les autres scripts :
+
+- `airflow/dags/03_nettoyage.py`
+- `airflow/dags/04_feature_engineering.py`
+
+Ce que ça fait :
+
+- détection automatique du contexte Docker → base `/opt/airflow`
+- détection automatique du contexte local → base du repo (`.../anidata-lab`)
+
+Donc `data/` et `output/` sont maintenant résolus correctement, peu importe le dossier depuis lequel tu lances la commande.
+
+Commandes de relance :
+
+```bash
+python3 airflow/dags/03_nettoyage.py
+python3 airflow/dags/04_feature_engineering.py
+```
+
