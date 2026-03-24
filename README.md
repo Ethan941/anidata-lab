@@ -95,7 +95,9 @@ Les fichiers Python et notebooks (.ipynb) s'ouvrent directement dans VS Code.
 
 ## 📘 Documentation du projet
 
-- Rapport principal de la semaine : `notebooks/rapport.md`
+- Rapport principal de la semaine : [`notebooks/rapport.md`](notebooks/rapport.md)
+- Rapport d'audit détaillé : [`rapport_audit.md`](rapport_audit.md)
+- Rapport de validation détaillé : [`rapport_validation.md`](rapport_validation.md)
 - Captures associées au rapport : `notebooks/images/`
 - Supports de cours : `notebooks/Cours ELK Grafana Mardi.pdf`
 

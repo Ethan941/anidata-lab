@@ -255,3 +255,28 @@ ratings.csv        57,633,278        3               0 (sur 500K)
 Les résultats ci-dessus constituent votre rapport d'audit.
 Copiez-collez la sortie dans un fichier texte pour le conserver.
 ```
+
+## Graphiques d'audit
+
+Les graphiques générés par `02_audit_visuel.py` sont disponibles ci-dessous.
+
+### 1) Distribution des scores
+![Distribution des scores](output/audit_charts/01_score_distribution.png)
+
+### 2) Types de données
+![Types de données](output/audit_charts/02_data_types.png)
+
+### 3) Top genres
+![Top genres](output/audit_charts/03_top_genres.png)
+
+### 4) Top studios
+![Top studios](output/audit_charts/04_top_studios.png)
+
+### 5) Répartition par type
+![Répartition par type](output/audit_charts/05_type_distribution.png)
+
+### 6) Boxplots
+![Boxplots](output/audit_charts/06_boxplots.png)
+
+### 7) Matrice de corrélation
+![Matrice de corrélation](output/audit_charts/07_correlation_matrix.png)
