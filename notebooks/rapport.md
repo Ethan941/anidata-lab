@@ -1847,3 +1847,394 @@ python3 airflow/dags/03_nettoyage.py
 python3 airflow/dags/04_feature_engineering.py
 ```
 
+Extrait terminal (exécution Docker réussie de `02_audit_visuel.py`) :
+
+```text
+romain@MacBook-Air-de-Romain anidata-lab % docker compose exec airflow-webserver python /opt/airflow/dags/02_audit_visuel.py
+🎌 AniData Lab — Génération des graphiques d'audit
+
+  Chargement de anime.csv...
+  ✅ 17,562 lignes chargées
+
+
+--- Graphique 1 : Valeurs manquantes ---
+  ℹ️  Pas de NaN classiques — on vérifie les NaN déguisés...
+
+--- Graphique 2 : NaN déguisés ---
+  📊 Graphique 1 sauvegardé : output/audit_charts/01_disguised_nan.png
+
+--- Graphique 3 : Distribution des scores ---
+  📊 Graphique 2 sauvegardé : output/audit_charts/02_score_distribution.png
+
+--- Graphique 4 : Types de données ---
+  📊 Graphique 3 sauvegardé : output/audit_charts/03_data_types.png
+
+--- Graphique 5 : Top genres ---
+  📊 Graphique 4 sauvegardé : output/audit_charts/04_top_genres.png
+
+--- Graphique 6 : Top studios ---
+  📊 Graphique 5 sauvegardé : output/audit_charts/05_top_studios.png
+
+--- Graphique 7 : Répartition par type ---
+  📊 Graphique 6 sauvegardé : output/audit_charts/06_type_distribution.png
+
+--- Graphique 8 : Boxplots ---
+  📊 Graphique 7 sauvegardé : output/audit_charts/07_boxplots.png
+
+--- Graphique 9 : Corrélations ---
+  📊 Graphique 8 sauvegardé : output/audit_charts/08_correlation_matrix.png
+
+============================================================
+  ✅ 8 graphiques générés dans output/audit_charts/
+  📂 Ouvrez le dossier pour examiner les résultats.
+============================================================
+```
+
+Extrait terminal (exécution Docker réussie de `03_nettoyage.py`) :
+
+```text
+romain@MacBook-Air-de-Romain anidata-lab % docker compose exec airflow-webserver python /opt/airflow/dags/03_nettoyage.py
+
+============================================================
+  NETTOYAGE — anime.csv
+============================================================
+
+  Chargement du fichier brut...
+  ✅ Fichier chargé : 17,562 lignes × 35 colonnes
+
+  Colonnes : ['MAL_ID', 'Name', 'Score', 'Genres', 'English name', 'Japanese name', 'Type', 'Episodes', 'Aired', 'Premiered', 'Producers', 'Licensors', 'Studios', 'Source', 'Duration', 'Rating', 'Ranked', 'Popularity', 'Members', 'Favorites', 'Watching', 'Completed', 'On-Hold', 'Dropped', 'Plan to Watch', 'Score-10', 'Score-9', 'Score-8', 'Score-7', 'Score-6', 'Score-5', 'Score-4', 'Score-3', 'Score-2', 'Score-1']
+
+--- Étape 1 : Normalisation des noms de colonnes ---
+  ℹ️    'MAL_ID' → 'mal_id'
+  ℹ️    'Name' → 'name'
+  ℹ️    'Score' → 'score'
+  ℹ️    'Genres' → 'genres'
+  ℹ️    'English name' → 'english_name'
+  ℹ️    'Japanese name' → 'japanese_name'
+  ℹ️    'Type' → 'type'
+  ℹ️    'Episodes' → 'episodes'
+  ℹ️    'Aired' → 'aired'
+  ℹ️    'Premiered' → 'premiered'
+  ℹ️    'Producers' → 'producers'
+  ℹ️    'Licensors' → 'licensors'
+  ℹ️    'Studios' → 'studios'
+  ℹ️    'Source' → 'source'
+  ℹ️    'Duration' → 'duration'
+  ℹ️    'Rating' → 'rating'
+  ℹ️    'Ranked' → 'ranked'
+  ℹ️    'Popularity' → 'popularity'
+  ℹ️    'Members' → 'members'
+  ℹ️    'Favorites' → 'favorites'
+  ℹ️    'Watching' → 'watching'
+  ℹ️    'Completed' → 'completed'
+  ℹ️    'On-Hold' → 'on_hold'
+  ℹ️    'Dropped' → 'dropped'
+  ℹ️    'Plan to Watch' → 'plan_to_watch'
+  ℹ️    'Score-10' → 'score_10'
+  ℹ️    'Score-9' → 'score_9'
+  ℹ️    'Score-8' → 'score_8'
+  ℹ️    'Score-7' → 'score_7'
+  ℹ️    'Score-6' → 'score_6'
+  ℹ️    'Score-5' → 'score_5'
+  ℹ️    'Score-4' → 'score_4'
+  ℹ️    'Score-3' → 'score_3'
+  ℹ️    'Score-2' → 'score_2'
+  ℹ️    'Score-1' → 'score_1'
+  ✅ 35 colonne(s) renommée(s)
+
+--- Étape 2 : Suppression des doublons ---
+  ✅ Clé 'mal_id' : aucun doublon
+  ✅ Doublons : 17,562 → 17,562 (0 retirées, -0.0%)
+
+--- Étape 3 : Traitement des NaN déguisés ---
+  ℹ️    'score' : 5,141 valeurs suspectes → NaN
+  ℹ️    'genres' : 63 valeurs suspectes → NaN
+  ℹ️    'english_name' : 10,565 valeurs suspectes → NaN
+  ℹ️    'japanese_name' : 48 valeurs suspectes → NaN
+  ℹ️    'type' : 37 valeurs suspectes → NaN
+  ℹ️    'episodes' : 516 valeurs suspectes → NaN
+  ℹ️    'aired' : 309 valeurs suspectes → NaN
+  ℹ️    'premiered' : 12,817 valeurs suspectes → NaN
+  ℹ️    'producers' : 7,794 valeurs suspectes → NaN
+  ℹ️    'licensors' : 13,616 valeurs suspectes → NaN
+  ℹ️    'studios' : 7,079 valeurs suspectes → NaN
+  ℹ️    'source' : 3,567 valeurs suspectes → NaN
+  ℹ️    'duration' : 555 valeurs suspectes → NaN
+  ℹ️    'rating' : 688 valeurs suspectes → NaN
+  ℹ️    'ranked' : 1,762 valeurs suspectes → NaN
+  ℹ️    'score_10' : 437 valeurs suspectes → NaN
+  ℹ️    'score_9' : 3,167 valeurs suspectes → NaN
+  ℹ️    'score_8' : 1,371 valeurs suspectes → NaN
+  ℹ️    'score_7' : 503 valeurs suspectes → NaN
+  ℹ️    'score_6' : 511 valeurs suspectes → NaN
+  ℹ️    'score_5' : 584 valeurs suspectes → NaN
+  ℹ️    'score_4' : 977 valeurs suspectes → NaN
+  ℹ️    'score_3' : 1,307 valeurs suspectes → NaN
+  ℹ️    'score_2' : 1,597 valeurs suspectes → NaN
+  ℹ️    'score_1' : 459 valeurs suspectes → NaN
+  ✅ Total : 75,470 valeurs textuelles remplacées par NaN
+
+--- Étape 4 : Correction des types de données ---
+  ℹ️    'episodes' : str → numeric (ok)
+  ℹ️    'ranked' : str → numeric (ok)
+  ℹ️    'rating' : str → numeric (16,874 valeurs non convertibles → NaN)
+  ℹ️    'score_10' : str → numeric (ok)
+  ℹ️    'score_9' : str → numeric (ok)
+  ℹ️    'score_8' : str → numeric (ok)
+  ℹ️    'score_7' : str → numeric (ok)
+  ℹ️    'score_6' : str → numeric (ok)
+  ℹ️    'score_5' : str → numeric (ok)
+  ℹ️    'score_4' : str → numeric (ok)
+  ℹ️    'score_3' : str → numeric (ok)
+  ℹ️    'score_2' : str → numeric (ok)
+  ℹ️    'score_1' : str → numeric (ok)
+  ✅ 13 colonne(s) converties en type numérique
+
+  Types après correction :
+    • mal_id                    → int64
+    • name                      → object
+    • score                     → float64
+    • genres                    → object
+    • english_name              → object
+    • japanese_name             → object
+    • type                      → object
+    • episodes                  → Int64
+    • aired                     → object
+    • premiered                 → object
+    • producers                 → object
+    • licensors                 → object
+    • studios                   → object
+    • source                    → object
+    • duration                  → object
+    • rating                    → float64
+    • ranked                    → float64
+    • popularity                → Int64
+    • members                   → Int64
+    • favorites                 → Int64
+    • watching                  → Int64
+    • completed                 → Int64
+    • on_hold                   → Int64
+    • dropped                   → Int64
+    • plan_to_watch             → Int64
+    • score_10                  → float64
+    • score_9                   → float64
+    • score_8                   → float64
+    • score_7                   → float64
+    • score_6                   → float64
+    • score_5                   → float64
+    • score_4                   → float64
+    • score_3                   → float64
+    • score_2                   → float64
+    • score_1                   → float64
+
+--- Étape 5 : Nettoyage des colonnes textuelles ---
+  ✅ 12 colonnes textuelles nettoyées (trim + espaces multiples)
+  ℹ️    'name' : guillemets parasites nettoyés
+  ℹ️    'english_name' : guillemets parasites nettoyés
+  ℹ️    'japanese_name' : guillemets parasites nettoyés
+
+--- Étape 6 : Normalisation des colonnes multi-valuées ---
+  ✅   'genres' : nettoyé — 43 valeurs uniques
+  ✅   'producers' : nettoyé — 1,306 valeurs uniques
+  ✅   'licensors' : nettoyé — 78 valeurs uniques
+  ✅   'studios' : nettoyé — 722 valeurs uniques
+
+--- Étape 7 : Normalisation des dates ---
+  ✅   'aired' → 'aired_start' + 'aired_end' (datetime)
+/opt/airflow/dags/03_nettoyage.py:288: UserWarning: Could not infer format, so each element will be parsed individually, falling back to `dateutil`. To ensure parsing is consistent and as-expected, please specify a format.
+  df[col] = pd.to_datetime(df[col], errors="coerce")
+  ✅   'premiered' → datetime
+
+--- Étape 8 : Détection et marquage des outliers ---
+  ✅ Total outliers marqués : 0 (non supprimés, juste flaggés)
+
+============================================================
+  RAPPORT DE NETTOYAGE
+============================================================
+
+
+                          AVANT           APRÈS
+───────────────────────────────────────────────────────
+  Lignes                      17,562          17,562
+  Colonnes                        35              38
+  NaN classiques                   0         109,007
+  Outliers marqués                                 0
+
+  Valeurs manquantes restantes par colonne :
+    rating                     17,562  (100.0%) ██████████████████████████████████████████████████
+    premiered                  17,562  (100.0%) ██████████████████████████████████████████████████
+    licensors                  13,616  ( 77.5%) ██████████████████████████████████████
+    english_name               10,565  ( 60.2%) ██████████████████████████████
+    aired_end                   9,809  ( 55.9%) ███████████████████████████
+    producers                   7,794  ( 44.4%) ██████████████████████
+    studios                     7,079  ( 40.3%) ████████████████████
+    score                       5,141  ( 29.3%) ██████████████
+    source                      3,567  ( 20.3%) ██████████
+    score_9                     3,167  ( 18.0%) █████████
+    aired_start                 2,109  ( 12.0%) ██████
+    ranked                      1,762  ( 10.0%) █████
+    score_2                     1,597  (  9.1%) ████
+    score_8                     1,371  (  7.8%) ███
+    score_3                     1,307  (  7.4%) ███
+    score_4                       977  (  5.6%) ██
+    score_5                       584  (  3.3%) █
+    duration                      555  (  3.2%) █
+    episodes                      516  (  2.9%) █
+    score_6                       511  (  2.9%) █
+    score_7                       503  (  2.9%) █
+    score_1                       459  (  2.6%) █
+    score_10                      437  (  2.5%) █
+    aired                         309  (  1.8%)
+    genres                         63  (  0.4%)
+    japanese_name                  48  (  0.3%)
+    type                           37  (  0.2%)
+
+--- Export du fichier nettoyé ---
+  ✅ Fichier exporté : output/anime_cleaned.csv (4.9 MB)
+  ✅ 17,562 lignes × 38 colonnes
+
+✅ Nettoyage terminé !
+→ Prochaine étape : python 04_feature_engineering.py
+```
+
+Extrait terminal (exécution Docker réussie de `04_feature_engineering.py`) :
+
+```text
+romain@MacBook-Air-de-Romain anidata-lab % docker compose exec airflow-webserver python /opt/airflow/dags/04_feature_engineering.py
+
+============================================================
+  FEATURE ENGINEERING — Enrichissement du dataset
+============================================================
+
+  Chargement du dataset nettoyé...
+  ✅ Fichier chargé : 17,562 lignes × 38 colonnes
+
+--- Feature 1 : Score de popularité pondéré ---
+  ℹ️  Formule : weighted_score = score × log10(members + 1)
+  ℹ️  Idée : un score de 8.5 avec 1M de membres vaut plus qu'un 8.5 avec 100 membres
+  ✅ Colonne 'weighted_score' créée
+
+  Top 5 par score pondéré :
+                            name  score  members  weighted_score
+Fullmetal Alchemist: Brotherhood   9.19  2248456           58.37
+                     Steins;Gate   9.11  1771162           56.92
+          Hunter x Hunter (2011)   9.10  1673924           56.64
+                  Kimi no Na wa.   8.96  1726660           55.89
+                      Death Note   8.63  2589552           55.35
+
+--- Feature 2 : Ratio d'abandon ---
+  ℹ️  Formule : drop_ratio = dropped / (dropped + completed)
+  ℹ️  Mesure la capacité d'un anime à retenir son audience
+  ✅ Colonne 'drop_ratio' créée — Moyenne : 17.48%, Médiane : 9.26%
+
+  Top 5 animes les plus abandonnés (>1000 viewers) :
+    • One Piece                                — abandon : 100.0%
+    • Detective Conan                          — abandon : 100.0%
+    • Boruto: Naruto Next Generations          — abandon : 100.0%
+    • Shadowverse (TV)                         — abandon : 100.0%
+    • Hanyou no Yashahime: Sengoku Otogizoushi — abandon : 100.0%
+
+--- Feature 3 : Catégorie de score ---
+  ℹ️  Discrétisation : < 5 = Mauvais, 5-6.5 = Moyen, 6.5-8 = Bon, ≥ 8 = Excellent
+  ✅ Colonne 'score_category' créée
+
+  Distribution :
+    Mauvais      :    513 (  4.1%) ██
+    Moyen        :  5,603 ( 45.1%) ██████████████████████
+    Bon          :  5,772 ( 46.5%) ███████████████████████
+    Excellent    :    533 (  4.3%) ██
+
+--- Feature 4 : Classification des studios ---
+  ℹ️  Top studio (≥50 animes), Mid (10-49), Indie (<10)
+  ✅ Colonnes 'main_studio' et 'studio_tier' créées
+
+  Répartition :
+    Top      :  6,606 animes
+    Mid      :  2,534 animes
+    Indie    :  1,343 animes
+
+  Top 5 studios :
+    • Toei Animation                 — 768 productions
+    • Sunrise                        — 499 productions
+    • J.C.Staff                      — 380 productions
+    • Madhouse                       — 356 productions
+    • Production I.G                 — 325 productions
+
+--- Feature 5 : Décennie de diffusion ---
+  ℹ️  Extraite de la date de début de diffusion
+  ✅ Colonnes 'year' et 'decade' créées
+
+  Animes par décennie :
+    1910s :    18
+    1920s :     9
+    1930s :    38
+    1940s :    15
+    1950s :    12
+    1960s :   162
+    1970s :   373 █
+    1980s : 1,109 ████
+    1990s : 1,865 ███████
+    2000s : 3,634 ██████████████
+    2010s : 7,448 ██████████████████████████████
+    2020s :   770 ███
+
+--- Feature 6 : Nombre de genres & genre principal ---
+  ✅ Colonnes 'n_genres' et 'main_genre' créées — Moyenne : 2.9 genres/anime
+
+  Top 10 genres principaux :
+    • Action               — 3,888
+    • Comedy               — 3,120
+    • Adventure            — 1,480
+    • Music                — 1,453
+    • Hentai               — 1,165
+    • Kids                 — 1,081
+    • Slice of Life        —   970
+    • Drama                —   800
+    • Sci-Fi               —   535
+    • Fantasy              —   518
+
+--- Feature 7 : Ratio d'engagement (favorites / members) ---
+  ℹ️  Formule : engagement_ratio = favorites / members
+  ℹ️  Un ratio élevé = communauté très engagée, pas juste des viewers passifs
+  ✅ Colonne 'engagement_ratio' créée — Moyenne : 0.0031
+
+  Top 5 animes les plus engageants (>10K members) :
+    • One Piece                                — engagement : 0.094
+    • Hunter x Hunter (2011)                   — engagement : 0.088
+    • Steins;Gate                              — engagement : 0.084
+    • Fullmetal Alchemist: Brotherhood         — engagement : 0.082
+    • Dragon Quest: Dai no Daibouken (2020)    — engagement : 0.075
+
+--- Feature 8 : Durée normalisée (en minutes) ---
+  ✅ Colonne 'duration_minutes' créée à partir de 'duration'
+
+============================================================
+  RAPPORT D'ENRICHISSEMENT
+============================================================
+
+
+  Colonnes avant  : 38
+  Colonnes après  : 49
+  Features créées : 11
+
+  Nouvelles colonnes :
+    • weighted_score            (float64        ) — 12,421 valeurs (71%)
+    • drop_ratio                (float64        ) — 17,232 valeurs (98%)
+    • score_category            (category       ) — 12,421 valeurs (71%)
+    • main_studio               (object         ) — 10,483 valeurs (60%)
+    • studio_tier               (object         ) — 10,483 valeurs (60%)
+    • year                      (float64        ) — 15,453 valeurs (88%)
+    • decade                    (Int64          ) — 15,453 valeurs (88%)
+    • n_genres                  (float64        ) — 17,499 valeurs (100%)
+    • main_genre                (object         ) — 17,499 valeurs (100%)
+    • engagement_ratio          (float64        ) — 17,562 valeurs (100%)
+    • duration_minutes          (float64        ) — 17,007 valeurs (97%)
+
+--- Export du dataset GOLD ---
+  ✅ Fichier exporté : output/anime_gold.csv (5.9 MB)
+  ✅ 17,562 lignes × 49 colonnes
+
+✅ Feature engineering terminé !
+→ Prochaine étape : python 05_validation.py
+```
+
