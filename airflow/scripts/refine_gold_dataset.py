@@ -15,6 +15,7 @@ Objectifs:
 from __future__ import annotations
 
 import json
+import os
 import unicodedata
 from pathlib import Path
 
@@ -24,6 +25,7 @@ import pandas as pd
 
 REPLACEMENT_CHAR = "�"
 ENCODINGS_TO_TRY = ("utf-8", "utf-8-sig", "cp932", "shift_jis")
+TITLE_COLUMNS = ("Name", "English name", "Japanese name")
 
 
 def read_csv_smart(path: Path) -> pd.DataFrame:
@@ -50,6 +52,64 @@ def parse_aired_start_year(series: pd.Series) -> pd.Series:
     """Extrait l'annee de debut depuis la colonne Aired."""
     years = series.astype(str).str.extract(r"(\d{4})", expand=False)
     return pd.to_numeric(years, errors="coerce").astype("Int64")
+
+
+def _parse_weight_from_env(var_name: str, default: float) -> float:
+    raw = os.getenv(var_name, str(default)).strip()
+    try:
+        value = float(raw)
+    except ValueError:
+        return default
+    return value if value >= 0 else default
+
+
+def get_title_quality_config() -> tuple[dict[str, float], float]:
+    """Lit la config de priorité qualité des colonnes titre via variables d'environnement."""
+    weights = {
+        "Name": _parse_weight_from_env("TITLE_WEIGHT_NAME", 0.5),
+        "English name": _parse_weight_from_env("TITLE_WEIGHT_ENGLISH_NAME", 0.3),
+        "Japanese name": _parse_weight_from_env("TITLE_WEIGHT_JAPANESE_NAME", 0.2),
+    }
+    threshold = _parse_weight_from_env("TITLE_WEIGHTED_COVERAGE_THRESHOLD", 0.8)
+    return weights, threshold
+
+
+def enforce_title_priority(
+    df: pd.DataFrame,
+    title_cols: tuple[str, ...],
+    weights: dict[str, float],
+    weighted_threshold: float,
+) -> tuple[pd.DataFrame, dict[str, float], float, list[str]]:
+    """Applique la règle de priorité des colonnes titre.
+
+    - Calcule la couverture utile par colonne (non vide + != Unknown)
+    - Calcule la couverture pondérée globale selon les poids métier
+    - Si la couverture pondérée est sous le seuil, supprime du gold les colonnes
+      dont la couverture utile est sous ce même seuil.
+    """
+    coverage_by_col: dict[str, float] = {}
+    dropped_cols: list[str] = []
+    for col in title_cols:
+        if col not in df.columns:
+            coverage_by_col[col] = 0.0
+            continue
+        series = df[col].astype(str).str.strip()
+        valid = (~series.isna()) & (series != "") & (series.str.lower() != "unknown") & (series.str.lower() != "nan")
+        coverage_by_col[col] = float(valid.mean())
+
+    total_weight = sum(weights.get(col, 0.0) for col in title_cols)
+    if total_weight <= 0:
+        total_weight = 1.0
+    weighted_coverage = sum(coverage_by_col.get(col, 0.0) * weights.get(col, 0.0) for col in title_cols) / total_weight
+
+    if weighted_coverage < weighted_threshold:
+        for col in title_cols:
+            if col in df.columns and coverage_by_col.get(col, 0.0) < weighted_threshold:
+                dropped_cols.append(col)
+        if dropped_cols:
+            df = df.drop(columns=dropped_cols)
+
+    return df, coverage_by_col, weighted_coverage, dropped_cols
 
 
 def classify_studios(df: pd.DataFrame, studio_col: str = "Studios") -> pd.Series:
@@ -167,6 +227,15 @@ def build_gold_dataset(base_dir: Path) -> tuple[pd.DataFrame, Path, Path]:
         if col in df.columns:
             df[col] = df[col].fillna("Unknown")
 
+    # Règle métier: poids élevés sur les colonnes titre, suppression du gold si qualité insuffisante
+    title_weights, weighted_threshold = get_title_quality_config()
+    df, title_coverage, weighted_title_coverage, dropped_title_cols = enforce_title_priority(
+        df=df,
+        title_cols=TITLE_COLUMNS,
+        weights=title_weights,
+        weighted_threshold=weighted_threshold,
+    )
+
     # Feature 1: score de popularite pondere
     # Normalise les members pour garder une echelle interpretable.
     if {"Score", "Members"}.issubset(df.columns):
@@ -202,6 +271,16 @@ def build_gold_dataset(base_dir: Path) -> tuple[pd.DataFrame, Path, Path]:
     out_json = gold_dir / "anime_gold.json"
     df.to_csv(out_csv, index=False, encoding="utf-8")
     df.to_json(out_json, orient="records", force_ascii=False, indent=2)
+
+    print(
+        "[Title priority] weights="
+        f"{title_weights} | weighted_coverage={weighted_title_coverage:.4f} | threshold={weighted_threshold:.4f}"
+    )
+    print(f"[Title priority] coverage_by_col={title_coverage}")
+    if dropped_title_cols:
+        print(f"[Title priority] Colonnes supprimées du gold: {dropped_title_cols}")
+    else:
+        print("[Title priority] Aucune colonne titre supprimée du gold.")
 
     return df, out_csv, out_json
 

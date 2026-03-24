@@ -20,8 +20,15 @@ import os
 # ============================================
 # CONFIG
 # ============================================
-DATA_DIR = "data"
-OUTPUT_DIR = "output/audit_charts"
+AIRFLOW_BASE_DIR = "/opt/airflow"
+if os.path.exists(os.path.join(AIRFLOW_BASE_DIR, "data")):
+    # Exécution dans le conteneur Airflow
+    BASE_DIR = AIRFLOW_BASE_DIR
+else:
+    # Exécution locale depuis le repo
+    BASE_DIR = os.path.abspath(os.path.join(os.path.dirname(__file__), "..", ".."))
+DATA_DIR = os.path.join(BASE_DIR, "data")
+OUTPUT_DIR = os.path.join(BASE_DIR, "output", "audit_charts")
 os.makedirs(OUTPUT_DIR, exist_ok=True)
 
 # Style des graphiques
@@ -98,4 +105,4 @@ for col in anime.columns:
         zeros = (score_data == 0).sum()
         if zeros > 0:
             disguised[f"{col} (= 0)"] = zeros
-... (220lignes restantes)
+#... (220lignes restantes)

@@ -1,5 +1,7 @@
 # rapport1.md
 
+![Capture Grafana](grafana.png)
+
 ## Table des matières
 - [Partie 1 - Contexte](#partie-1---contexte)
 - [Partie 2 - Import des librairies](#partie-2---import-des-librairies)
@@ -291,6 +293,28 @@ JSON → pour API / frontend
 dashboard Grafana
 API FastAPI
 reco system
+
+### Règle de pondération des titres (gold)
+
+Pour fiabiliser la qualité des colonnes titres dans le dataset `gold`, une règle de priorité pondérée est appliquée dans le script de refinement :
+
+- poids `Name` = 0.5
+- poids `English name` = 0.3
+- poids `Japanese name` = 0.2
+- seuil de couverture pondérée = 0.8
+
+Résultat mesuré sur exécution :
+
+- `weighted_coverage = 0.8190`
+- couverture par colonne :
+  - `Name = 1.0000`
+  - `English name = 0.3984`
+  - `Japanese name = 0.9973`
+- décision : **aucune colonne titre supprimée du gold** (seuil atteint)
+
+Règle de sécurité :
+
+- si le score pondéré passe sous le seuil, les colonnes titre faibles sont retirées du gold pour éviter de diffuser des champs texte peu fiables.
 ---
 
 ## Jour 3 - Elasticsearch
@@ -597,6 +621,26 @@ size : count
 ✅ Dataset gold indexé
 ✅ Requête full-text OK
 ✅ 3 dashboards Grafana et j'i sur http://localhost:9200/:
+
+À faire maintenant (important)
+
+Redémarrer Grafana + Logstash :
+
+```bash
+docker compose restart grafana logstash
+```
+
+Réindexer `anime` pour que les docs aient `@timestamp` :
+
+```bash
+docker compose --profile ingest up -d logstash
+```
+
+Vérifier qu’il existe :
+
+```bash
+curl -s "http://localhost:9200/anime/_search?size=1&sort=@timestamp:desc&pretty"
+```
 
 ```json
 {
@@ -1549,5 +1593,43 @@ romain@MacBook-Air-de-Romain pipeline % curl "http://localhost:9200/anime/_searc
           ],
           "column42" : "Studio Pierrot"
         }
+```
+
+Extrait terminal (exécution `01_audit_complet.py` après correction des chemins) :
+
+```text
+romain@MacBook-Air-de-Romain dags % python3 01_audit_complet.py
+
+============================================================
+  1. VÉRIFICATION DES FICHIERS
+============================================================
+
+  ✅ anime.csv (5.4 MB) — Informations générales sur les animes
+  ✅ rating_complete.csv (780.0 MB) — Ratings des utilisateurs (animes complétés)
+  ✅ anime_with_synopsis.csv (6.9 MB) — Synopsis textuels des animes
+
+============================================================
+  2. CHARGEMENT DES DONNÉES
+============================================================
+
+  Chargement de anime.csv...
+  ✅ anime.csv : 17,562 lignes × 35 colonnes
+  Chargement de anime_with_synopsis.csv...
+```
+
+Extrait terminal (succès `02_audit_visuel.py` en Docker) :
+
+```text
+romain@MacBook-Air-de-Romain anidata-lab % docker compose exec airflow-webserver python /opt/airflow/dags/02_audit_visuel.py
+🎌 AniData Lab — Génération des graphiques d'audit
+
+  Chargement de anime.csv...
+  ✅ 17,562 lignes chargées
+
+
+--- Graphique 1 : Valeurs manquantes ---
+  ℹ️  Pas de NaN classiques — on vérifie les NaN déguisés...
+
+--- Graphique 2 : NaN déguisés ---
 ```
 

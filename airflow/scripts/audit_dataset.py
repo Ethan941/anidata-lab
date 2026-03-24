@@ -34,6 +34,7 @@ PATH_SYNOPSIS = BASE_DIR / "anime_with_synopsis.csv"
 # Ordre de test encodages (a adapter si besoin)
 ENCODINGS_TO_TRY = ["utf-8", "utf-8-sig", "cp932", "shift_jis"]
 REPLACEMENT_CHAR = "�"
+TITLE_COLUMNS = ["Name", "English name", "Japanese name"]
 
 # Si tu vois des caracteres corrompus ou une erreur d'encodage, mets TEST_ENCODING=True
 TEST_ENCODING = False
@@ -181,6 +182,43 @@ def encoding_text_audit(df: pd.DataFrame, name: str, max_obj_cols: int = 50) -> 
         print(f"- {col}: {c}")
 
 
+def title_priority_audit(
+    df: pd.DataFrame,
+    title_cols: list[str] | None = None,
+    weights: dict[str, float] | None = None,
+    weighted_threshold: float = 0.8,
+) -> None:
+    """Audit de priorité des colonnes titre avec score pondéré de couverture utile."""
+    if title_cols is None:
+        title_cols = TITLE_COLUMNS
+    if weights is None:
+        weights = {"Name": 0.5, "English name": 0.3, "Japanese name": 0.2}
+
+    print("\n--- Audit priorité titres (Name / English name / Japanese name) ---")
+    coverages: dict[str, float] = {}
+    for col in title_cols:
+        if col not in df.columns:
+            coverages[col] = 0.0
+            print(f"- {col}: colonne absente")
+            continue
+        series = df[col].astype(str).str.strip()
+        valid = (series != "") & (series.str.lower() != "unknown") & (series.str.lower() != "nan")
+        cov = float(valid.mean())
+        coverages[col] = cov
+        print(f"- {col}: couverture utile={cov:.4%}")
+
+    total_weight = sum(weights.get(c, 0.0) for c in title_cols) or 1.0
+    weighted_cov = sum(coverages.get(c, 0.0) * weights.get(c, 0.0) for c in title_cols) / total_weight
+    print(
+        f"[Title priority] score pondéré={weighted_cov:.4%} | "
+        f"seuil recommandé={weighted_threshold:.0%} | poids={weights}"
+    )
+    if weighted_cov < weighted_threshold:
+        print("[WARN] Score pondéré sous le seuil: envisager suppression des colonnes titres faibles dans le gold.")
+    else:
+        print("[OK] Score pondéré conforme au seuil.")
+
+
 def main() -> None:
     if not PATH_ANIME.exists():
         raise FileNotFoundError(f"Introuvable: {PATH_ANIME}")
@@ -248,6 +286,7 @@ def main() -> None:
     # ============
     encoding_text_audit(anime, "anime")
     encoding_text_audit(anime_synopsis, "anime_with_synopsis")
+    title_priority_audit(anime)
 
     # ============
     # Contrôles métier (exemples)
@@ -282,7 +321,7 @@ def main() -> None:
     profile = ProfileReport(anime, title="Rapport anime", explorative=True)
     _ = profile.to_notebook_iframe()
     # Export HTML (utile depuis un script)
-    profile.to_file(str(PATH_DIR / "rapport_anime.html"))
+    profile.to_file(str(BASE_DIR / "rapport_anime.html"))
 
     print("[Profiling] Generating report for anime_with_synopsis.csv ...")
     profile_syn = ProfileReport(
@@ -291,7 +330,7 @@ def main() -> None:
         explorative=True,
     )
     _ = profile_syn.to_notebook_iframe()
-    profile_syn.to_file(str(PATH_DIR / "rapport_anime_with_synopsis.html"))
+    profile_syn.to_file(str(BASE_DIR / "rapport_anime_with_synopsis.html"))
 
     print("[Profiling] Generating report for rating_complete.csv (sample si necessaire) ...")
     n_max = 100_000
@@ -306,7 +345,7 @@ def main() -> None:
         explorative=True,
     )
     _ = profile_rating.to_notebook_iframe()
-    profile_rating.to_file(str(PATH_DIR / "rapport_rating_complete_sample.html"))
+    profile_rating.to_file(str(BASE_DIR / "rapport_rating_complete_sample.html"))
 
     print("\nTermine.")
 

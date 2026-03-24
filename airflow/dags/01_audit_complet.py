@@ -1,4 +1,4 @@
- """
+"""
 🎌 AniData Lab — Script d'audit du dataset MyAnimeList
 =======================================================
 Séance 1 — Lundi 23 mars 2026 — Après-midi
@@ -19,7 +19,14 @@ import sys
 # ============================================
 # CONFIGURATION
 # ============================================
-DATA_DIR = "data"  # Chemin vers le dossier data/
+AIRFLOW_BASE_DIR = "/opt/airflow"
+if os.path.exists(os.path.join(AIRFLOW_BASE_DIR, "data")):
+    # Exécution dans le conteneur Airflow
+    BASE_DIR = AIRFLOW_BASE_DIR
+else:
+    # Exécution locale depuis le repo
+    BASE_DIR = os.path.abspath(os.path.join(os.path.dirname(__file__), "..", ".."))
+DATA_DIR = os.path.join(BASE_DIR, "data")  # Chemin absolu vers anidata-lab/data
 
 # Couleurs terminal
 class C:
@@ -98,4 +105,4 @@ anime = pd.read_csv(os.path.join(DATA_DIR, "anime.csv"))
 ok(f"anime.csv : {anime.shape[0]:,} lignes × {anime.shape[1]} colonnes")
 
 print("  Chargement de anime_with_synopsis.csv...")
-... (252lignes restantes)
+#... (252lignes restantes)
