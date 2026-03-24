@@ -130,7 +130,7 @@
         {
           "datasource": { "type": "elasticsearch", "uid": "elasticsearch-anime" },
           "metrics": [{ "type": "count", "id": "1" }],
-          "bucketAggs": [{ "type": "terms", "id": "2", "field": "genres.keyword", "settings": { "size": "10", "order": "desc", "orderBy": "_count" } }],
+          "bucketAggs": [{ "type": "terms", "id": "2", "field": "genres", "settings": { "size": "10", "order": "desc", "orderBy": "_count" } }],
           "query": "*",
           "refId": "A"
         }
@@ -170,7 +170,7 @@
         {
           "datasource": { "type": "elasticsearch", "uid": "elasticsearch-anime" },
           "metrics": [{ "type": "count", "id": "1" }],
-          "bucketAggs": [{ "type": "terms", "id": "2", "field": "studios.keyword", "settings": { "size": "10", "order": "desc", "orderBy": "_count" } }],
+          "bucketAggs": [{ "type": "terms", "id": "2", "field": "studios", "settings": { "size": "10", "order": "desc", "orderBy": "_count" } }],
           "query": "*",
           "refId": "A"
         }
@@ -211,6 +211,114 @@
             { "id": "2", "type": "histogram", "field": "score", "settings": { "interval": "0.5", "min_doc_count": "0" } },
             { "id": "3", "type": "histogram", "field": "popularity", "settings": { "interval": "500", "min_doc_count": "0" } }
           ]
+        }
+      ]
+    },
+    {
+      "datasource": { "type": "elasticsearch", "uid": "elasticsearch-anime" },
+      "fieldConfig": {
+        "defaults": {
+          "color": { "mode": "palette-classic" },
+          "mappings": [],
+          "thresholds": { "mode": "absolute", "steps": [{ "color": "green", "value": null }] }
+        },
+        "overrides": []
+      },
+      "gridPos": { "h": 10, "w": 6, "x": 0, "y": 20 },
+      "id": 7,
+      "options": {
+        "displayLabels": ["name", "percent"],
+        "legend": { "displayMode": "list", "placement": "bottom" },
+        "pieType": "donut",
+        "reduceOptions": { "calcs": ["lastNotNull"], "fields": "", "values": false },
+        "tooltip": { "mode": "single" }
+      },
+      "title": "Répartition par type (TV/Movie/OVA...)",
+      "type": "piechart",
+      "targets": [
+        {
+          "datasource": { "type": "elasticsearch", "uid": "elasticsearch-anime" },
+          "metrics": [{ "type": "count", "id": "1" }],
+          "bucketAggs": [{ "type": "terms", "id": "2", "field": "type", "settings": { "size": "10", "order": "desc", "orderBy": "_count" } }],
+          "query": "*",
+          "refId": "A"
+        }
+      ]
+    },
+    {
+      "datasource": { "type": "elasticsearch", "uid": "elasticsearch-anime" },
+      "fieldConfig": {
+        "defaults": {
+          "color": { "mode": "palette-classic" },
+          "mappings": [],
+          "thresholds": { "mode": "absolute", "steps": [{ "color": "green", "value": null }] }
+        },
+        "overrides": []
+      },
+      "gridPos": { "h": 10, "w": 6, "x": 6, "y": 20 },
+      "id": 8,
+      "options": {
+        "displayLabels": ["name", "percent"],
+        "legend": { "displayMode": "list", "placement": "bottom" },
+        "pieType": "donut",
+        "reduceOptions": { "calcs": ["lastNotNull"], "fields": "", "values": false },
+        "tooltip": { "mode": "single" }
+      },
+      "title": "Répartition par tier studio",
+      "type": "piechart",
+      "targets": [
+        {
+          "datasource": { "type": "elasticsearch", "uid": "elasticsearch-anime" },
+          "metrics": [{ "type": "count", "id": "1" }],
+          "bucketAggs": [{ "type": "terms", "id": "2", "field": "studio_class.keyword", "settings": { "size": "10", "order": "desc", "orderBy": "_count" } }],
+          "query": "*",
+          "refId": "A"
+        }
+      ]
+    },
+    {
+      "datasource": { "type": "elasticsearch", "uid": "elasticsearch-anime" },
+      "fieldConfig": {
+        "defaults": {
+          "color": { "mode": "palette-classic" },
+          "custom": {
+            "axisBorderShow": false,
+            "axisLabel": "",
+            "drawStyle": "line",
+            "fillOpacity": 20,
+            "lineInterpolation": "smooth",
+            "lineWidth": 2,
+            "pointSize": 3,
+            "showPoints": "never",
+            "spanNulls": false
+          },
+          "mappings": [],
+          "thresholds": { "mode": "absolute", "steps": [{ "color": "green", "value": null }] }
+        },
+        "overrides": []
+      },
+      "gridPos": { "h": 10, "w": 12, "x": 12, "y": 24 },
+      "id": 9,
+      "options": {
+        "legend": { "displayMode": "list", "placement": "bottom" },
+        "tooltip": { "mode": "single", "sort": "none" }
+      },
+      "title": "Évolution du nombre d'animes par décennie",
+      "type": "timeseries",
+      "targets": [
+        {
+          "datasource": { "type": "elasticsearch", "uid": "elasticsearch-anime" },
+          "metrics": [{ "type": "count", "id": "1" }],
+          "bucketAggs": [
+            {
+              "type": "date_histogram",
+              "id": "2",
+              "field": "decade_start",
+              "settings": { "interval": "10y", "min_doc_count": "0", "trimEdges": "0" }
+            }
+          ],
+          "query": "*",
+          "refId": "A"
         }
       ]
     }

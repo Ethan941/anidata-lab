@@ -2238,3 +2238,93 @@ Fullmetal Alchemist: Brotherhood   9.19  2248456           58.37
 → Prochaine étape : python 05_validation.py
 ```
 
+Extrait terminal (indexation Elasticsearch réussie avec `script_prof.py`) :
+
+```text
+romain@MacBook-Air-de-Romain scripts % python3 script_prof.py
+
+============================================================
+  INDEXATION ELASTICSEARCH
+============================================================
+
+
+--- Étape 1 : Connexion à Elasticsearch ---
+  Tentative de connexion à http://localhost:9200...
+  ✅ Connecté au cluster 'anidata-cluster' (status: yellow)
+
+--- Étape 2 : Vérification du fichier source ---
+  ✅ Fichier chargé : 17,562 documents (17.7 MB)
+  ℹ️  Premier document : ['mal_id', 'name', 'score', 'genres', 'english_name', 'japanese_name', 'type', 'episodes']...
+  ℹ️  Exemple : Cowboy Bebop (score: 8.78)
+
+--- Étape 3 : Création de l'index ---
+  ⚠️  L'index 'anime' existe déjà — suppression...
+  ✅ Ancien index supprimé
+  Création de l'index 'anime' avec mapping...
+  ✅ Index 'anime' créé avec succès
+  ℹ️  Mapping : 49 champs définis
+  Types principaux :
+    • long         : 17 champs
+    • keyword      : 13 champs
+    • integer      : 7 champs
+    • float        : 5 champs
+    • text         : 4 champs
+    • date         : 2 champs
+    • boolean      : 1 champs
+
+--- Étape 4 : Indexation bulk (17,562 documents) ---
+  Taille des chunks : 500 documents
+  Début de l'indexation...
+
+  [████████████████████████████████████████] 100.0% — 17,562/17,562 — 3587 docs/s
+  ✅ Indexation terminée en 4.9 secondes
+  ✅   Succès : 17,562
+
+--- Étape 5 : Vérification de l'indexation ---
+  ✅ Documents dans l'index : 17,562
+  ℹ️  Taille de l'index : 10.7 MB
+
+  Tests de recherche rapides :
+  ──────────────────────────────────────────────────
+  ✅ match_all : 10,000 résultats
+  ✅ Naruto               → 27 résultats (top: Naruto)
+  ✅ Score > 9            → 11 résultats (top: Ginga Eiyuu Densetsu)
+  ✅ Genre: Action        → 0 résultats (top: aucun)
+  ✅ Studio: Bones        → 0 résultats (top: aucun)
+
+  Agrégation : Top 5 genres
+  ──────────────────────────────────────────────────
+
+  Agrégation : Score moyen par type
+  ──────────────────────────────────────────────────
+    TV           : score moyen 6.89 (4,996 animes)
+    OVA          : score moyen 6.32 (3,894 animes)
+    Movie        : score moyen 6.50 (3,041 animes)
+    Special      : score moyen 6.50 (2,218 animes)
+    ONA          : score moyen 6.13 (1,907 animes)
+    Music        : score moyen 5.88 (1,469 animes)
+
+============================================================
+  INDEXATION TERMINÉE
+============================================================
+
+
+  Index           : anime
+  Documents       : 1,469
+  Taille          : 10.7 MB
+  Temps           : 4.9s
+  Débit           : 300 docs/s
+
+  Accès :
+  📊 Grafana        → http://localhost:3000  (admin / anidata)
+  🔍 Elasticsearch  → http://localhost:9200/anime/_search
+
+  Requêtes utiles :
+  curl http://localhost:9200/anime/_count
+  curl "http://localhost:9200/anime/_search?q=name:naruto&pretty"
+  curl "http://localhost:9200/anime/_search?q=main_genre:Action&size=5&pretty"
+
+✅ Les données sont prêtes dans Elasticsearch !
+   Ouvrez Grafana pour créer vos dashboards.
+```
+
