@@ -1,7 +1,5 @@
 # rapport1.md
 
-![Capture Grafana](images/grafana2.png)
-
 ## Table des matières
 - [Partie 1 - Contexte](#partie-1---contexte)
 - [Partie 2 - Import des librairies](#partie-2---import-des-librairies)
@@ -670,6 +668,16 @@ field : Genres
 X : score
 Y : popularity
 size : count
+
+### Évolution visuelle du dashboard Grafana
+
+Avant correction (stat cards en "No data") :
+
+![Grafana avant correction](images/grafana.png)
+
+Après correction (stat cards alimentées + panel heatmap) :
+
+![Grafana après correction](images/grafana2.png)
 
 ✅ Mise à jour validée (capture actuelle)
 
