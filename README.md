@@ -40,7 +40,10 @@ cd ~/Desktop
 unzip anidata-lab.zip && cd anidata-lab
 ```
 
-### Étape 2 — Installer les dépendances Python locales
+### Étape 2 — Installer les dépendances Python locales (optionnel)
+
+Si vous exécutez les scripts uniquement dans Docker, vous pouvez sauter cette étape.
+Elle est nécessaire uniquement pour une exécution locale (hors conteneur).
 
 ```bash
 pip install pandas numpy matplotlib seaborn elasticsearch
@@ -90,6 +93,14 @@ Les fichiers Python et notebooks (.ipynb) s'ouvrent directement dans VS Code.
 
 ---
 
+## 📘 Documentation du projet
+
+- Rapport principal de la semaine : `notebooks/rapport.md`
+- Captures associées au rapport : `notebooks/images/`
+- Supports de cours : `notebooks/Cours ELK Grafana Mardi.pdf`
+
+---
+
 ## 🏗️ Architecture du projet
 
 ```
@@ -99,20 +110,27 @@ anidata-lab/
 ├── .env                            # Variables de configuration
 ├── start.sh / start.bat            # Scripts de démarrage
 │
-├── data/                           # 📦 Datasets CSV (à télécharger)
+├── data/                           # 📦 Datasets CSV source + gold
 │   ├── LIRE_MOI.txt
 │   ├── anime.csv
 │   ├── rating_complete.csv
 │   └── anime_with_synopsis.csv
+│   └── gold/
+│       ├── anime_gold.csv
+│       └── anime_gold.json
 │
 ├── airflow/
 │   ├── dags/                       # 🔄 Vos DAGs Airflow
-│   │   └── 00_hello_anidata.py
+│   │   ├── 00_hello_anidata.py
+│   │   └── anidata_refinement_dag.py
 │   ├── scripts/                    # Scripts Python utilitaires
+│   │   ├── audit_dataset.py
+│   │   └── refine_gold_dataset.py
 │   ├── plugins/
 │   └── logs/
 │
 ├── elk/
+│   ├── mapping_anime.json          # Mapping Elasticsearch
 │   └── logstash/
 │       └── pipeline/               # Config Logstash
 │           └── anime.conf
@@ -124,8 +142,11 @@ anidata-lab/
 │   └── dashboards/                 # 📊 Fichiers JSON des dashboards
 │       └── anidata-overview.json   # Dashboard de démarrage
 │
-└── notebooks/                      # 📓 Vos notebooks (VS Code)
-    └── (créez vos .ipynb ici)
+└── notebooks/
+    ├── rapport.md                  # Rapport consolidé (audit + refinement + ELK)
+    ├── images/
+    │   └── grafana2.png            # Capture dashboard Grafana
+    └── Cours ELK Grafana Mardi.pdf
 ```
 
 ---
