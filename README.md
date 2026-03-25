@@ -330,6 +330,15 @@ docker compose up -d
 2. Dans Grafana → Configuration → Data Sources → tester la connexion
 3. Relancer Logstash si besoin : `docker compose --profile ingest up logstash`
 
+### Les imports Airflow sont soulignés dans Cursor (mais ça marche dans Docker)
+
+ C'est un avertissement de l'IDE (linter `basedpyright`) et pas un vrai problème d'exécution.
+
+- Quand tu exécutes les DAG dans Docker, le conteneur a bien `apache-airflow` installé, donc les imports comme `from airflow.operators.bash import BashOperator` fonctionnent.
+- Dans Cursor, le linter analyse ton environnement Python local (ou le venv sélectionné). S'il n'a pas `apache-airflow` installé, Cursor affiche “Impossible de résoudre l'importation …”.
+
+Si tu veux faire disparaître le warning : installe `apache-airflow` dans le même interpréteur Python que celui utilisé par Cursor, ou ignore simplement ces warnings de type.
+
 ### Supprimer le DAG Airflow : pourquoi les données restent sur Grafana ?
 
 Si tu supprimes le DAG `anidata_full_pipeline` dans Airflow, tu peux quand même voir les chiffres dans Grafana.
