@@ -141,20 +141,25 @@ anidata-lab/
 │       └── anime_gold.json
 │
 ├── airflow/
-│   ├── dags/                       # 🔄 Vos DAGs Airflow
+│   ├── dags/                       # 🔄 Orchestration Airflow
+│   │   └── anidata_full_pipeline_dag.py
+│   ├── scripts/                    # Scripts exécutés dans le DAG
 │   │   ├── 00_hello_anidata.py
-│   │   └── anidata_refinement_dag.py
-│   ├── scripts/                    # Scripts Python utilitaires
-│   │   ├── audit_dataset.py
-│   │   └── refine_gold_dataset.py
-│   ├── plugins/
-│   └── logs/
+│   │   ├── 01_audit_complet.py
+│   │   ├── 02_audit_visuel.py
+│   │   ├── 03_nettoyage.py
+│   │   ├── 04_feature_engineering.py
+│   │   ├── 05_validation.py
+│   │   ├── refine_gold_dataset.py
+│   │   └── script_prof.py
+│   ├── plugins/                   # Optionnel
+│   └── logs/                      # Logs Airflow
 │
 ├── elk/
 │   ├── mapping_anime.json          # Mapping Elasticsearch
 │   └── logstash/
 │       └── pipeline/               # Config Logstash
-│           └── anime.conf
+│           └── logstash.conf
 │
 ├── grafana/
 │   ├── provisioning/
@@ -165,9 +170,15 @@ anidata-lab/
 │
 └── notebooks/
     ├── rapport.md                  # Rapport consolidé (audit + refinement + ELK)
-    ├── images/
-    │   └── grafana2.png            # Capture dashboard Grafana
-    └── Cours ELK Grafana Mardi.pdf
+    ├── rapport_audit.md           # Sorties audit (01_audit_complet)
+    ├── rapport_validation.md      # Sorties validation (05_validation)
+    ├── images/                     # Captures & graphiques
+    │   ├── grafana.png
+    │   ├── grafana2.png
+    │   ├── airflow_dag.png
+    │   └── audit_charts/          # Graphiques générés par 02_audit_visuel
+    ├── Cours ELK Grafana Mardi.pdf
+    └── Cours ETL Airflow Jour3.pdf
 ```
 
 ---
