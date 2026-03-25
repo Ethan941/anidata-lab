@@ -355,6 +355,10 @@ Oui, tu peux le faire via le DAG. Dans `anidata_full_pipeline`, lance le DAG pui
 
 En pratique : c’est `script_prof.py` qui “fabrique” la base de données pour Grafana, c’est-à-dire l’index Elasticsearch `anime` (et donc les documents qui alimentent les dashboards).
 
+Note : `script_prof.py` fait maintenant une **indexation incrémentale / upsert** :
+- il ne supprime plus l’index existant `anime`
+- les documents sont mis à jour via `_id` (basé sur `mal_id`)
+
 Image (clic pour déclencher le DAG) :
 <img src="notebooks/images/airflow_trigger_dag.png" alt="airflow_trigger_dag.png" width="800" />
 

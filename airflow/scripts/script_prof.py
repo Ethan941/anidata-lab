@@ -276,32 +276,30 @@ if docs:
 # ============================================
 step("Étape 3 : Création de l'index")
 
-# Supprimer l'index existant si présent
+# Index incrémental : ne pas supprimer l'index s'il existe
+# - Si l'index existe : on le réutilise (bulk avec même _id => upsert/maj)
+# - Si l'index n'existe pas : on le crée avec le mapping
 if es.indices.exists(index=INDEX_NAME):
-    warn(f"L'index '{INDEX_NAME}' existe déjà — suppression...")
-    es.indices.delete(index=INDEX_NAME)
-    ok("Ancien index supprimé")
+    warn(f"L'index '{INDEX_NAME}' existe déjà — mise à jour incrémentale (sans suppression).")
+else:
+    print(f"  Création de l'index '{INDEX_NAME}' avec mapping...")
+    try:
+        es.indices.create(index=INDEX_NAME, body=ANIME_MAPPING)
+        ok(f"Index '{INDEX_NAME}' créé avec succès")
 
-# Créer l'index avec le mapping
-print(f"  Création de l'index '{INDEX_NAME}' avec mapping...")
-try:
-    es.indices.create(index=INDEX_NAME, body=ANIME_MAPPING)
-    ok(f"Index '{INDEX_NAME}' créé avec succès")
-
-    # Afficher le mapping
-    mapping_fields = list(ANIME_MAPPING["mappings"]["properties"].keys())
-    info(f"Mapping : {len(mapping_fields)} champs définis")
-    print(f"  Types principaux :")
-    type_counts = {}
-    for field, config in ANIME_MAPPING["mappings"]["properties"].items():
-        t = config.get("type", "?")
-        type_counts[t] = type_counts.get(t, 0) + 1
-    for t, count in sorted(type_counts.items(), key=lambda x: -x[1]):
-        print(f"    • {t:12s} : {count} champs")
-
-except Exception as e:
-    fail(f"Erreur lors de la création de l'index : {e}")
-    sys.exit(1)
+        # Afficher le mapping (utile au démarrage)
+        mapping_fields = list(ANIME_MAPPING["mappings"]["properties"].keys())
+        info(f"Mapping : {len(mapping_fields)} champs définis")
+        print(f"  Types principaux :")
+        type_counts = {}
+        for field, config in ANIME_MAPPING["mappings"]["properties"].items():
+            t = config.get("type", "?")
+            type_counts[t] = type_counts.get(t, 0) + 1
+        for t, count in sorted(type_counts.items(), key=lambda x: -x[1]):
+            print(f"    • {t:12s} : {count} champs")
+    except Exception as e:
+        fail(f"Erreur lors de la création de l'index : {e}")
+        sys.exit(1)
 
 
 # ============================================
