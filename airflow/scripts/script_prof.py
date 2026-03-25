@@ -32,7 +32,7 @@ except ImportError:
 # ============================================
 # CONFIG
 # ============================================
-ES_HOST = "http://localhost:9200"
+ES_HOST = None  # defaultisé après détection local vs Docker
 INDEX_NAME = "anime"
 BULK_CHUNK_SIZE = 500
 
@@ -41,6 +41,15 @@ if os.path.exists(os.path.join(AIRFLOW_BASE_DIR, "data")):
     BASE_DIR = AIRFLOW_BASE_DIR
 else:
     BASE_DIR = os.path.abspath(os.path.join(os.path.dirname(__file__), "..", ".."))
+
+if ES_HOST is None:
+    # Dans Docker Compose, Elasticsearch est joignable via le nom de service.
+    # En local (hors docker), on utilise localhost.
+    ES_HOST = (
+        "http://elasticsearch:9200"
+        if BASE_DIR == AIRFLOW_BASE_DIR
+        else "http://localhost:9200"
+    )
 
 INPUT_FILE = os.path.join(BASE_DIR, "output", "anime_gold.json")
 

@@ -5,7 +5,20 @@
 
 ---
 
+## Sommaire
+1. [Prérequis](#prerequis)
+2. [Installation (5 minutes)](#installation-5-minutes)
+3. [Documentation du projet](#documentation-du-projet)
+4. [Architecture du projet](#architecture-du-projet)
+5. [Consommation mémoire (optimisée pour 8 Go)](#consommation-memoire)
+6. [Utilisation au fil de la semaine](#utilisation-au-fil-de-la-semaine)
+7. [Commandes utiles](#commandes-utiles)
+8. [Dépannage](#depannage)
+9. [Ressources](#ressources)
+
 ## 📋 Prérequis
+
+<a id="prerequis"></a>
 
 - **Docker Desktop** installé et lancé ([docker.com/get-started](https://www.docker.com/get-started))
 - **VS Code** avec les extensions Python et Jupyter ([code.visualstudio.com](https://code.visualstudio.com/))
@@ -32,6 +45,8 @@ code --version          # VS Code
 ---
 
 ## 🚀 Installation (5 minutes)
+
+<a id="installation-5-minutes"></a>
 
 ### Étape 1 — Copier le projet
 
@@ -95,6 +110,8 @@ Les fichiers Python et notebooks (.ipynb) s'ouvrent directement dans VS Code.
 
 ## 📘 Documentation du projet
 
+<a id="documentation-du-projet"></a>
+
 - Rapport principal de la semaine : [`notebooks/rapport.md`](notebooks/rapport.md)
 - Rapport d'audit détaillé : [`rapport_audit.md`](rapport_audit.md)
 - Rapport de validation détaillé : [`rapport_validation.md`](rapport_validation.md)
@@ -104,6 +121,8 @@ Les fichiers Python et notebooks (.ipynb) s'ouvrent directement dans VS Code.
 ---
 
 ## 🏗️ Architecture du projet
+
+<a id="architecture-du-projet"></a>
 
 ```
 anidata-lab/
@@ -155,6 +174,8 @@ anidata-lab/
 
 ## 🧮 Consommation mémoire (optimisée pour 8 Go)
 
+<a id="consommation-memoire"></a>
+
 | Service            | RAM allouée | Rôle                              |
 |--------------------|-------------|-----------------------------------|
 | Elasticsearch      | 1 Go        | Stockage et recherche             |
@@ -168,6 +189,8 @@ anidata-lab/
 ---
 
 ## 📊 Utilisation au fil de la semaine
+
+<a id="utilisation-au-fil-de-la-semaine"></a>
 
 ### Lundi / Mardi matin — Data Refinement (VS Code)
 
@@ -225,6 +248,8 @@ Différence clé :
 
 ## ⚡ Commandes utiles
 
+<a id="commandes-utiles"></a>
+
 ```bash
 # Démarrer tout
 docker compose up -d
@@ -235,8 +260,16 @@ docker compose up -d postgres airflow-init airflow-webserver airflow-scheduler
 # Arrêter tout (conserve les données)
 docker compose down
 
+# (Re)faire une remise à zéro complète via Airflow
+# (arrête les conteneurs et garde les volumes)
+# Si tu veux repartire de zéro "clean" : stop/détruit les conteneurs, puis recrée l'environnement.
+# Exemple : enchaîner `docker compose down` puis `docker compose up -d`.
+
 # Arrêter et SUPPRIMER toutes les données
 docker compose down -v
+
+# (Re)créer l'environnement après destruction complète
+docker compose up -d
 
 # Voir les logs d'un service
 docker compose logs -f elasticsearch
@@ -263,6 +296,8 @@ docker compose exec airflow-webserver bash
 
 ## 🐛 Dépannage
 
+<a id="depannage"></a>
+
 ### Elasticsearch ne démarre pas (Linux)
 
 ```bash
@@ -284,6 +319,169 @@ docker compose up -d
 2. Dans Grafana → Configuration → Data Sources → tester la connexion
 3. Relancer Logstash si besoin : `docker compose --profile ingest up logstash`
 
+### Supprimer le DAG Airflow : pourquoi les données restent sur Grafana ?
+
+Si tu supprimes le DAG `anidata_full_pipeline` dans Airflow, tu peux quand même voir les chiffres dans Grafana.
+
+Dans ton projet, la “base de données” qui sert à afficher les chiffres dans Grafana, c’est Elasticsearch.
+
+Explication : le DAG Airflow ne “stocke” pas les données. Il sert uniquement à exécuter tes scripts (notamment `script_prof.py`) qui indexent ensuite les données dans Elasticsearch. Une fois l’index `anime` créé dans Elasticsearch, Grafana continuera d’afficher les résultats tant que l’index (et ses documents) existent.
+
+Pour effacer réellement les données affichées dans Grafana :
+1. Supprimer l’index Elasticsearch `anime` :
+   `curl -X DELETE http://localhost:9200/anime`
+2. Ou réinitialiser Elasticsearch (supprime les volumes) :
+   `docker compose down -v && docker compose up -d elasticsearch`
+
+### Indexation Elasticsearch via le DAG (script_prof.py)
+
+Question (dernière) :
+`docker compose exec airflow-webserver python /opt/airflow/scripts/script_prof.py`
+
+Réponse :
+Oui, tu peux le faire via le DAG. Dans `anidata_full_pipeline`, lance le DAG puis attends que la tâche
+`06_indexation_elasticsearch` s’exécute (c’est elle qui lance `script_prof.py` et recrée l’index `anime`).
+
+Image (clic pour déclencher le DAG) :
+<img src="notebooks/images/airflow_trigger_dag.png" alt="airflow_trigger_dag.png" width="800" />
+
+### Résultats DAG Airflow (exécution complète)
+
+- Vue DAG (succès) :
+  <img src="notebooks/images/airflow_dag.png" alt="airflow_dag.png" width="800" />
+- Les 7 tâches principales sont en `success` :
+  <img src="notebooks/images/success_task.png" alt="success_task.png" width="800" />
+- Aucun email d’échec n’a été envoyé (tâche `send_email_audit_failed` en `skipped`) :
+  <img src="notebooks/images/skipped_task.png" alt="skipped_task.png" width="800" />
+
+### `01_audit_complet.py` : `sys.exit()` à la fin
+
+À la fin de `01_audit_complet.py`, il vaut mieux faire un `sys.exit()` pour que le script se termine proprement (succès ou échec).
+
+Exemple :
+
+```python
+import sys
+
+try:
+    # ... tout ton code d’audit ...
+
+    print("✅ Audit terminé avec succès !")
+    sys.exit(0)
+
+except Exception as e:
+    print(f"❌ Audit échoué : {e}")
+    sys.exit(1)
+```
+
+Dans ton cas **Airflow** :
+
+Quand ton script fait :
+
+```python
+print("Audit terminé avec succès !")
+```
+
+👉 cette phrase est envoyée dans un **stream stdout**.
+
+Et Airflow peut :
+- lire ce flux
+- ou récupérer tout à la fin via les logs / l’exécution du `BashOperator`.
+
+Exemple visuel (sortie console) :
+
+<img src="notebooks/images/sis.exit().png" alt="sis.exit().png" width="800" />
+
+### Email en cas d'échec (DAG `anidata_full_pipeline_dag.py`)
+
+Dans `anidata_full_pipeline_dag.py`, l’`EmailOperator` envoie l’email à :
+
+- `to="tonmail@example.com"`
+
+Donc c’est **`tonmail@example.com`** (placeholder à remplacer par ton vrai email).
+
+### Où retrouves-tu la phrase dans Airflow ?
+
+Oui, les logs Airflow enregistrent tous les `print()`, donc :
+
+SI ton script affiche
+
+```python
+print("Audit terminé avec succès !")
+```
+
+👉 alors oui, cette phrase sera dans les logs Airflow ✅
+
+🧠 1. Où ça apparaît ?
+
+Dans Airflow :
+`UI → ton DAG → tâche 01_audit_complet → onglet Log`
+
+Tu verras exactement la ligne
+`Audit terminé avec succès !`
+dans la sortie de la tâche.
+
+🧠 2. Comment le DAG la détecte ?
+
+Dans `anidata_full_pipeline_dag.py`, la commande de `01_audit_complet` écrit d’abord la console dans :
+`/opt/airflow/output/audit_log.txt` (via `tee`)
+
+Puis le DAG vérifie :
+`if grep -q 'Audit terminé avec succès !' /opt/airflow/output/audit_log.txt; then ...`
+
+### run2 : ce que fait `02_audit_visuel.py` dans `anidata_full_pipeline_dag.py`
+
+Le DAG exécute `run_02_audit_visuel` (tâche Airflow `02_audit_visuel`) et fait ces vérifications :
+
+1) Lance le script :
+`python /opt/airflow/scripts/02_audit_visuel.py`
+
+2) Sauvegarde la sortie dans un log :
+`/opt/airflow/output/audit_visuel_log.txt` (via `tee`)
+
+3) Vérifie que Python s’est bien terminé (code retour != 0 => `FAIL`)
+
+4) Compte les `.png` générés dans :
+`/opt/airflow/output/audit_charts/`
+Attendu : **7 fichiers**
+
+5) Met `OK` ou `FAIL` dans :
+`/opt/airflow/output/audit_visuel_status.txt`
+
+6) Vérifie les noms exacts des fichiers (7 attendus) :
+- `01_score_distribution.png`
+- `02_data_types.png`
+- `03_top_genres.png`
+- `04_top_studios.png`
+- `05_type_distribution.png`
+- `06_boxplots.png`
+- `07_correlation_matrix.png`
+
+### run_03_nettoyage : ce que fait `03_nettoyage.py` dans `anidata_full_pipeline_dag.py`
+
+Le DAG exécute `run_03_nettoyage` (tâche Airflow `03_nettoyage`) et attend principalement ces vérifications :
+
+Ce que cette version vérifie :
+
+- le script ne crash pas (exit code OK)
+- `output/anime_cleaned.csv` a bien été généré
+- le fichier n’est pas vide
+- le log contient bien la ligne `Nettoyage terminé !`
+
+1) Lancer le script :
+`python /opt/airflow/scripts/03_nettoyage.py`
+
+2) Sauver le log d’exécution (stdout) dans les logs Airflow (onglet **Log** de la tâche).
+
+3) Vérifier que le script s’est bien terminé (exit code OK => la tâche passe, sinon FAIL).
+
+4) Vérifier que le fichier existe vraiment :
+`/opt/airflow/output/anime_cleaned.csv`
+
+5) Vérifier que le fichier n’est pas vide.
+
+6) Éventuellement vérifier que le fichier contient bien les colonnes attendues (ex : `mal_id`, `name`, `score`, `episodes`, etc.).
+
 ### Un port est déjà utilisé
 
 ```bash
@@ -300,6 +498,8 @@ docker compose up -d
 ---
 
 ## 📚 Ressources
+
+<a id="ressources"></a>
 
 - [Dataset Kaggle](https://www.kaggle.com/datasets/hernan4444/anime-recommendation-database-2020)
 - [Documentation Elasticsearch](https://www.elastic.co/guide/en/elasticsearch/reference/current/index.html)
