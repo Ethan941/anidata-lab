@@ -205,6 +205,22 @@ Un dashboard de démarrage est déjà pré-configuré !
 Ouvrir **Airflow** http://localhost:8080 (admin / admin).
 Créer vos DAGs dans `airflow/dags/` — ils apparaissent automatiquement.
 
+### Airflow vs Cron (pour bien comprendre)
+
+Un cron (souvent écrit `cron job`) sur Linux est un système de planification de tâches automatiques.
+
+En gros :
+c’est un outil qui permet d’exécuter des commandes ou scripts à des moments précis (toutes les heures, tous les jours, etc.), sans intervention humaine.
+
+Exemple concret :
+- lancer un script Python tous les jours à 3h
+- faire une sauvegarde toutes les 10 minutes
+- envoyer un email tous les lundis
+
+Différence clé :
+- `cron` déclenche “à l’heure” une commande.
+- `Airflow` orchestre des pipelines (dépendances entre étapes, exécution pilotée, historisation, etc.).
+
 ---
 
 ## ⚡ Commandes utiles
@@ -212,6 +228,9 @@ Créer vos DAGs dans `airflow/dags/` — ils apparaissent automatiquement.
 ```bash
 # Démarrer tout
 docker compose up -d
+
+# (Re)démarrer Airflow + sa DB Postgres
+docker compose up -d postgres airflow-init airflow-webserver airflow-scheduler
 
 # Arrêter tout (conserve les données)
 docker compose down

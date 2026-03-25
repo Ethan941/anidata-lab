@@ -199,17 +199,17 @@
         "tooltip": { "show": true, "yHistogram": false },
         "yAxis": { "axisPlacement": "left", "reverse": false, "unit": "short" }
       },
-      "title": "Heatmap ratings (score vs popularity)",
+      "title": "Heatmap ratings (score_category x studio_class)",
       "type": "heatmap",
       "targets": [
         {
           "datasource": { "type": "elasticsearch", "uid": "elasticsearch-anime" },
-          "query": "*",
+          "query": "score_category:* AND studio_class.keyword:*",
           "refId": "A",
           "metrics": [{ "id": "1", "type": "count" }],
           "bucketAggs": [
-            { "id": "2", "type": "histogram", "field": "score", "settings": { "interval": "0.5", "min_doc_count": "0" } },
-            { "id": "3", "type": "histogram", "field": "popularity", "settings": { "interval": "500", "min_doc_count": "0" } }
+            { "id": "2", "type": "terms", "field": "score_category", "settings": { "size": "10", "order": "desc", "orderBy": "_count" } },
+            { "id": "3", "type": "terms", "field": "studio_class.keyword", "settings": { "size": "10", "order": "desc", "orderBy": "_count" } }
           ]
         }
       ]
@@ -224,7 +224,7 @@
         },
         "overrides": []
       },
-      "gridPos": { "h": 10, "w": 6, "x": 0, "y": 20 },
+      "gridPos": { "h": 10, "w": 6, "x": 0, "y": 24 },
       "id": 7,
       "options": {
         "displayLabels": ["name", "percent"],
@@ -255,7 +255,7 @@
         },
         "overrides": []
       },
-      "gridPos": { "h": 10, "w": 6, "x": 6, "y": 20 },
+      "gridPos": { "h": 10, "w": 6, "x": 6, "y": 24 },
       "id": 8,
       "options": {
         "displayLabels": ["name", "percent"],
@@ -297,7 +297,7 @@
         },
         "overrides": []
       },
-      "gridPos": { "h": 10, "w": 12, "x": 12, "y": 24 },
+      "gridPos": { "h": 10, "w": 12, "x": 12, "y": 34 },
       "id": 9,
       "options": {
         "legend": { "displayMode": "list", "placement": "bottom" },

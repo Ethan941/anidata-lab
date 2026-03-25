@@ -2328,3 +2328,23 @@ romain@MacBook-Air-de-Romain scripts % python3 script_prof.py
    Ouvrez Grafana pour créer vos dashboards.
 ```
 
+### Pourquoi redémarrer Grafana après modification du dashboard JSON
+
+Tu n’es pas "obligé" de faire `docker compose` à chaque modification, mais avec le setup actuel (provisioning), c’est la méthode la plus fiable.
+
+Pourquoi :
+
+- `anidata-overview.json` est chargé par Grafana via `grafana/provisioning/dashboards/dashboards.yml`
+- ce mécanisme lit les fichiers au démarrage (et selon la config, ne recharge pas instantanément chaque modification)
+- donc pour être sûr que Grafana relise le JSON, on redémarre le conteneur Grafana
+
+En pratique :
+
+1. sauvegarder le JSON
+2. faire un hard refresh navigateur (`Cmd+Shift+R`)
+3. si ça ne bouge pas :
+
+```bash
+docker compose restart grafana
+```
+
