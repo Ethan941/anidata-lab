@@ -59,7 +59,12 @@ def notify_failure_callback(context: dict) -> None:
     <p>Logs : <a href="{log_url}">{log_url}</a></p>
     """
 
-    send_email(FAILURE_TO, subject=subject, html_content=html_content)
+    try:
+        send_email(FAILURE_TO, subject=subject, html_content=html_content)
+    except Exception as e:
+        # Ne pas casser le workflow si l'email ne peut pas partir (SMTP non configuré, etc.)
+        # On laisse l'erreur initiale de la tâche piloter le FAIL du DAG.
+        marker.write_text(f"sent_but_failed:{e}", encoding="utf-8")
 
 
 def check_audit_status() -> str:
@@ -92,13 +97,13 @@ with DAG(
         "mkdir -p /opt/airflow/output && "
         "rm -f /opt/airflow/output/audit_log.txt /opt/airflow/output/audit_log_1.txt /opt/airflow/output/audit_log_2.txt; "
         # Run 1
-        "python /opt/airflow/scripts/01_audit_complet.py | tee /opt/airflow/output/audit_log_1.txt; "
+        "python /opt/airflow/scripts/01_audit_complet.py > /opt/airflow/output/audit_log_1.txt 2>&1; "
         "rc=$?; "
         "if [ $rc -ne 0 ]; then echo FAIL > /opt/airflow/output/audit_status.txt; exit $rc; fi; "
         "grep -q 'Audit terminé avec succès !' /opt/airflow/output/audit_log_1.txt || (echo FAIL > /opt/airflow/output/audit_status.txt; exit 1); "
         "hash1=$(sha256sum /opt/airflow/output/audit_log_1.txt | awk '{print $1}'); "
         # Run 2
-        "python /opt/airflow/scripts/01_audit_complet.py | tee /opt/airflow/output/audit_log_2.txt; "
+        "python /opt/airflow/scripts/01_audit_complet.py > /opt/airflow/output/audit_log_2.txt 2>&1; "
         "rc=$?; "
         "if [ $rc -ne 0 ]; then echo FAIL > /opt/airflow/output/audit_status.txt; exit $rc; fi; "
         "grep -q 'Audit terminé avec succès !' /opt/airflow/output/audit_log_2.txt || (echo FAIL > /opt/airflow/output/audit_status.txt; exit 1); "
