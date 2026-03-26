@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 from datetime import datetime
+import json
 import re
 from pathlib import Path
 
@@ -8,6 +9,7 @@ from airflow import DAG
 from airflow.operators.bash import BashOperator
 from airflow.operators.email import EmailOperator
 from airflow.operators.python import BranchPythonOperator
+from airflow.operators.python import PythonOperator
 from airflow.utils.email import send_email
 
 
@@ -77,6 +79,24 @@ def check_audit_status() -> str:
     return "send_email_audit_failed"
 
 
+def receive_from_dag2(**context) -> dict:
+    """
+    Cross-DAG "handoff":
+    dag2 triggers this DAG and passes its XCom payload via dag_run.conf.
+    We store it to XCom (return value) and persist to filesystem for debugging.
+    """
+    dag_run = context.get("dag_run")
+    conf = (dag_run.conf or {}) if dag_run else {}
+
+    out_dir = Path("/opt/airflow/output")
+    out_dir.mkdir(parents=True, exist_ok=True)
+    (out_dir / "full_pipeline_received_from_dag2.json").write_text(
+        json.dumps(conf, ensure_ascii=False, indent=2),
+        encoding="utf-8",
+    )
+    return conf
+
+
 with DAG(
     dag_id="anidata_full_pipeline",
     default_args=DEFAULT_ARGS,
@@ -87,6 +107,12 @@ with DAG(
     tags=["anidata", "pipeline"],
 ) as dag:
     cd_opt_airflow = "cd /opt/airflow"
+
+    receive_xcom_from_dag2 = PythonOperator(
+        task_id="00_receive_from_dag2",
+        python_callable=receive_from_dag2,
+        on_failure_callback=notify_failure_callback,
+    )
 
     run_01_audit_complet = BashOperator(
     task_id="01_audit_complet",
@@ -339,4 +365,6 @@ with DAG(
     check_audit >> send_email_audit_failed
 
     run_02_audit_visuel >> run_03_nettoyage >> run_04_feature_engineering >> run_05_validation >> run_06_indexation
+
+    receive_xcom_from_dag2 >> run_01_audit_complet
 
