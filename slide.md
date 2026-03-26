@@ -75,3 +75,26 @@ Démo (si 30–45s) :
 - `curl http://localhost:9200/anime/_count`
 - ouvrir Grafana (total, top studios, genres, etc.)
 
+---
+
+## Slide 6 — Schéma des tasks (DAG2 + DAG1)
+
+### DAG 2 — `anidata_dag2_convert_and_send`
+
+`task1_recuperer_fichiers`  
+→ `task2_branch_par_extension`  
+→ (`task2_json_vers_csv` et/ou `task2_xml_vers_csv`)  
+→ `task3_preparer_xcom_pour_dag1`  
+→ `task4_transmettre_au_dag1` *(TriggerDagRun vers `anidata_full_pipeline`)*
+
+### DAG 1 — `anidata_full_pipeline`
+
+`00_receive_from_dag2`  
+→ `01_audit_complet`  
+→ `check_audit_status`  
+→ **Branche OK**: `02_audit_visuel` → `03_nettoyage` → `04_feature_engineering` → `05_validation` → `06_indexation_elasticsearch`  
+→ **Branche FAIL**: `send_email_audit_failed`
+
+Message clé :
+**DAG2 prépare/convertit et transmet; DAG1 exécute le pipeline data complet + indexation Elasticsearch.**
+
