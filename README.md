@@ -6,15 +6,19 @@
 ---
 
 ## Sommaire
-1. [Prérequis](#prerequis)
-2. [Installation (5 minutes)](#installation-5-minutes)
-3. [Documentation du projet](#documentation-du-projet)
-4. [Architecture du projet](#architecture-du-projet)
-5. [Consommation mémoire (optimisée pour 8 Go)](#consommation-memoire)
-6. [Utilisation au fil de la semaine](#utilisation-au-fil-de-la-semaine)
-7. [Commandes utiles](#commandes-utiles)
-8. [Dépannage](#depannage)
-9. [Ressources](#ressources)
+1. **Démarrage rapide**
+   - [Prérequis](#prerequis)
+   - [Installation (5 minutes)](#installation-5-minutes)
+   - [Utilisation au fil de la semaine](#utilisation-au-fil-de-la-semaine)
+2. **Comprendre le projet**
+   - [Documentation du projet](#documentation-du-projet)
+   - [Architecture du projet](#architecture-du-projet)
+   - [Consommation mémoire (optimisée pour 8 Go)](#consommation-memoire)
+3. **Exploitation & maintenance**
+   - [Commandes utiles](#commandes-utiles)
+   - [Dépannage](#depannage)
+     - cas fréquents couverts : Elasticsearch (Linux), Airflow DB init, OOM webserver, Grafana sans données, imports Airflow Cursor, reset complet
+   - [Ressources](#ressources)
 
 ## 📋 Prérequis
 
