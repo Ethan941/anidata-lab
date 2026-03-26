@@ -406,6 +406,25 @@ Image (clic pour déclencher le DAG) :
 - Aucun email d’échec n’a été envoyé (tâche `send_email_audit_failed` en `skipped`) :
   <img src="notebooks/images/skipped_task.png" alt="skipped_task.png" width="800" />
 
+### DAG2 : pourquoi le total passe de 17562 à 17588
+
+Le panneau Grafana **“Total animes indexés”** compte les documents dans l’index Elasticsearch `anime`.
+
+- Après exécution **DAG1 seul** (indexation depuis `anime_gold.json`) : **17562**.
+- Après exécution **DAG2 puis DAG1** :
+  - `dag2` convertit `data/anime_2.json` et `data/anime_3.xml` en CSV,
+  - puis indexe/upsert ces nouveaux enregistrements directement dans l’index **`anime`**,
+  - ce qui ajoute **+26** documents uniques.
+
+Donc : **17562 → 17588 (= 17562 + 26)**.
+
+Captures :
+
+- DAG1 only :
+  <img src="notebooks/images/DAG1_only.png" alt="DAG1_only.png" width="800" />
+- DAG2 + DAG1 :
+  <img src="notebooks/images/DAG2+DAG1.png" alt="DAG2+DAG1.png" width="800" />
+
 ### `01_audit_complet.py` : `sys.exit()` à la fin
 
 À la fin de `01_audit_complet.py`, il vaut mieux faire un `sys.exit()` pour que le script se termine proprement (succès ou échec).
