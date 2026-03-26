@@ -157,6 +157,7 @@ services:
       - AIRFLOW__WEBSERVER__SECRET_KEY=${AIRFLOW__WEBSERVER__SECRET_KEY}
       - AIRFLOW__WEBSERVER__EXPOSE_CONFIG=${AIRFLOW__WEBSERVER__EXPOSE_CONFIG}
       - AIRFLOW__CORE__DAGS_ARE_PAUSED_AT_CREATION=${AIRFLOW__CORE__DAGS_ARE_PAUSED_AT_CREATION}
+      - AIRFLOW__WEBSERVER__WORKERS=1
       - _PIP_ADDITIONAL_REQUIREMENTS=pandas elasticsearch matplotlib seaborn apache-airflow-providers-elasticsearch
     volumes:
       - ./airflow/dags:/opt/airflow/dags
@@ -166,7 +167,7 @@ services:
       - ./data:/opt/airflow/data
     ports:
       - "8080:8080"
-    mem_limit: 512m
+    mem_limit: 1g
     depends_on:
       airflow-init:
         condition: service_completed_successfully
@@ -201,7 +202,7 @@ services:
       - ./airflow/plugins:/opt/airflow/plugins
       - ./airflow/scripts:/opt/airflow/scripts
       - ./data:/opt/airflow/data
-    mem_limit: 512m
+    mem_limit: 1g
     depends_on:
       airflow-init:
         condition: service_completed_successfully

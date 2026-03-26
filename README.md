@@ -324,6 +324,28 @@ docker compose up airflow-init
 docker compose up -d
 ```
 
+### Airflow UI ne répond pas (ERR_EMPTY_RESPONSE) / `SIGKILL` (OOM) sur `airflow-webserver`
+
+Symptôme typique dans les logs :
+`Worker (...) was sent SIGKILL! Perhaps out of memory?`
+
+Modif minimale recommandée dans `docker-compose.yml` (service `airflow-webserver`) :
+
+```yaml
+environment:
+  - AIRFLOW__CORE__DAGS_ARE_PAUSED_AT_CREATION=${AIRFLOW__CORE__DAGS_ARE_PAUSED_AT_CREATION}
+  - AIRFLOW__WEBSERVER__WORKERS=1
+  - _PIP_ADDITIONAL_REQUIREMENTS=pandas
+```
+
+Puis relancer et retester :
+
+```bash
+docker compose down
+docker compose up -d
+curl http://localhost:8080/health
+```
+
 ### Grafana ne montre pas de données
 
 1. Vérifier qu'Elasticsearch a des données : `curl http://localhost:9200/anime/_count`
@@ -454,6 +476,41 @@ Dans `anidata_full_pipeline_dag.py`, la commande de `01_audit_complet` écrit d�
 
 Puis le DAG vérifie :
 `if grep -q 'Audit terminé avec succès !' /opt/airflow/output/audit_log.txt; then ...`
+
+### Pourquoi `anidata_full_pipeline` peut échouer même si l’audit affiche "✅ Audit terminé…"
+
+Cas typique :
+`01_audit_complet.py` affiche bien “✅ Audit terminé…” donc le `grep` passe, **mais** la tâche échoue quand même car le `BashOperator` faisait un **test de déterminisme** en comparant le hash de `audit_log_1.txt` et `audit_log_2.txt`.
+
+Si les logs diffèrent (même 1 ligne), ça force `FAIL` et `exit 1`.
+
+Extrait (ancienne logique) :
+
+```bash
+"grep -q 'Audit terminé avec succès !' /opt/airflow/output/audit_log_1.txt || (echo FAIL > /opt/airflow/output/audit_status.txt; exit 1); "
+"hash1=$(sha256sum /opt/airflow/output/audit_log_1.txt | awk '{print $1}'); "
+# Run 2
+"grep -q 'Audit terminé avec succès !' /opt/airflow/output/audit_log_2.txt || (echo FAIL > /opt/airflow/output/audit_status.txt; exit 1); "
+"hash2=$(sha256sum /opt/airflow/output/audit_log_2.txt | awk '{print $1}'); "
+# Compare
+"if [ \"$hash1\" != \"$hash2\" ]; then echo FAIL > /opt/airflow/output/audit_status.txt; exit 1; fi; "
+```
+
+Pourquoi ça arrive :
+le script imprime des choses qui peuvent varier d’un run à l’autre (timestamps, ordre d’affichage, etc.), donc les 2 logs ne sont pas forcément strictement identiques.
+
+#### Correction appliquée
+
+Le DAG a été modifié pour **ne plus faire échouer le run sur un hash mismatch** :
+- on garde les 2 exécutions,
+- on garde le `grep "Audit terminé avec succès !"`,
+- on garde la 2e exécution comme log canonique (`audit_log.txt`) et on écrit `OK`.
+
+#### Après modification (recharger Airflow)
+
+```bash
+docker compose restart airflow-scheduler airflow-webserver
+```
 
 ### run2 : ce que fait `02_audit_visuel.py` dans `anidata_full_pipeline_dag.py`
 

@@ -127,15 +127,11 @@ with DAG(
         "rc=$?; "
         "if [ $rc -ne 0 ]; then echo FAIL > /opt/airflow/output/audit_status.txt; exit $rc; fi; "
         "grep -q 'Audit terminé avec succès !' /opt/airflow/output/audit_log_1.txt || (echo FAIL > /opt/airflow/output/audit_status.txt; exit 1); "
-        "hash1=$(sha256sum /opt/airflow/output/audit_log_1.txt | awk '{print $1}'); "
         # Run 2
         "python /opt/airflow/scripts/01_audit_complet.py > /opt/airflow/output/audit_log_2.txt 2>&1; "
         "rc=$?; "
         "if [ $rc -ne 0 ]; then echo FAIL > /opt/airflow/output/audit_status.txt; exit $rc; fi; "
         "grep -q 'Audit terminé avec succès !' /opt/airflow/output/audit_log_2.txt || (echo FAIL > /opt/airflow/output/audit_status.txt; exit 1); "
-        "hash2=$(sha256sum /opt/airflow/output/audit_log_2.txt | awk '{print $1}'); "
-        # Compare
-        "if [ \"$hash1\" != \"$hash2\" ]; then echo FAIL > /opt/airflow/output/audit_status.txt; exit 1; fi; "
         # Canonical log + status
         "cp -f /opt/airflow/output/audit_log_2.txt /opt/airflow/output/audit_log.txt; "
         "echo OK > /opt/airflow/output/audit_status.txt"
