@@ -18,6 +18,7 @@
 
 - **Docker Compose** orchestre la stack locale
 - **Airflow** = orchestration (pipeline, vérifications, branches, notifications)
+- **PostgreSQL** = base metadata Airflow (DAG runs, task instances, états)
 - **Scripts Python** = transformation (audit → nettoyage → feature engineering → validation)
 - **Elasticsearch** = stockage + recherche + agrégations (sert de “DB” pour Grafana)
 - **Grafana** = visualisation (datasource Elasticsearch + dashboard provisionné)
