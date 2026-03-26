@@ -418,6 +418,12 @@ Le panneau Grafana **“Total animes indexés”** compte les documents dans l�
 
 Donc : **17562 → 17588 (= 17562 + 26)**.
 
+Pour refaire la demo (17562 puis 17588) :
+- Supprime l'index `anime` (vrai reset Elasticsearch) :
+  `curl -X DELETE http://localhost:9200/anime`
+- Vérifie :
+  `curl http://localhost:9200/anime/_count`
+
 Captures :
 
 - DAG1 only :
