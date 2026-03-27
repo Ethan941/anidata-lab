@@ -5,6 +5,10 @@
 
 apiVersion: 1
 
+deleteDatasources:
+  - name: Elasticsearch - Anime
+    orgId: 1
+
 datasources:
   - name: Elasticsearch - Anime
     uid: elasticsearch-anime
@@ -17,6 +21,26 @@ datasources:
     jsonData:
       esVersion: "8.12.0"
       timeField: "@timestamp"
+      interval: "Yearly"
       logLevelField: ""
       logMessageField: ""
       maxConcurrentShardRequests: 5
+      includeFrozen: false
+
+  # Alias uid for compatibility with grafana-config-prof dashboards.
+  - name: Elasticsearch - Anime (Alias)
+    uid: anidata-es
+    type: elasticsearch
+    access: proxy
+    url: http://elasticsearch:9200
+    database: "anime"
+    isDefault: false
+    editable: true
+    jsonData:
+      esVersion: "8.12.0"
+      timeField: "@timestamp"
+      interval: "Yearly"
+      logLevelField: ""
+      logMessageField: ""
+      maxConcurrentShardRequests: 5
+      includeFrozen: false
