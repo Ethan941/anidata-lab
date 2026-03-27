@@ -163,6 +163,18 @@ run_01_audit_complet = BashOperator(
 - Lance l'audit 2 fois, verifie le message de succes.
 - Ecrit `OK`/`FAIL` dans `audit_status.txt`.
 
+**Detail des commandes Bash (01_audit_complet)**
+- `cd /opt/airflow` : se place dans le dossier de travail du conteneur.
+- `rm -f ...` : nettoie les anciens fichiers de status/log pour repartir propre.
+- `mkdir -p /opt/airflow/output` : cree le dossier de sortie s'il n'existe pas.
+- `python ... > audit_log_1.txt 2>&1` : lance le script et redirige stdout+stderr dans un log.
+- `rc=$?` : recupere le code retour du script.
+- `if [ $rc -ne 0 ] ... exit $rc` : fail immediat si le script plante.
+- `grep -q 'Audit terminé avec succès !' ...` : verifie le message final attendu.
+- deuxieme run identique : confirme que le script se termine bien aussi au second passage.
+- `cp -f audit_log_2.txt audit_log.txt` : garde le run 2 comme log canonique.
+- `echo OK > audit_status.txt` : ecrit l'etat lu ensuite par le `BranchPythonOperator`.
+
 ### Branch audit + email
 
 ```python
@@ -190,11 +202,26 @@ send_email_audit_failed = EmailOperator(
 - Verifie que les PNG sont presents.
 - Fait un double-run et compare les hashes des graphiques.
 
+**Detail des commandes Bash (02_audit_visuel)**
+- `rm -rf .../audit_charts && mkdir -p .../audit_charts` : nettoie et recree le dossier des graphes.
+- `python ... | tee audit_visuel_log_1.txt` : affiche en console et logue en meme temps.
+- `png_count=$(ls -1 .../*.png | wc -l)` : compte les fichiers png generes.
+- `ls -1 .../*score_distribution.png ...` : verifie la presence des noms de fichiers attendus.
+- `hash=$(ls .../*.png | sort | xargs sha256sum | sha256sum)` : calcule une empreinte globale des images.
+- comparaison `hash1/hash2` : echec si les sorties visuelles different entre run 1 et run 2.
+
 ### 03) Nettoyage
 
 - Execute `03_nettoyage.py`.
 - Verifie `anime_cleaned.csv` + logs.
 - Double-run + hash CSV pour controler la reproductibilite.
+
+**Detail des commandes Bash (03_nettoyage)**
+- `rm -f anime_cleaned.csv ...` : nettoie les sorties precedentes.
+- `python ... | tee nettoyage_log_1.txt` : lance le nettoyage et logue la sortie.
+- `if [ ! -s anime_cleaned.csv ]` : verifie que le CSV existe et n'est pas vide.
+- `sha256sum anime_cleaned.csv` : hash du fichier pour comparer run 1 et run 2.
+- `grep -q 'Nettoyage terminé !'` : controle du message final attendu.
 
 ### 04) Feature engineering
 
@@ -202,11 +229,23 @@ send_email_audit_failed = EmailOperator(
 - Verifie `anime_gold.csv` et colonnes attendues.
 - Double-run + hash CSV.
 
+**Detail des commandes Bash (04_feature_engineering)**
+- meme pattern de fiabilite : double-run + comparaison des hashes.
+- `header=$(head -n 1 anime_gold.csv)` : lit l'en-tete du CSV.
+- `echo "$header" | grep -q 'weighted_score' ...` : valide les colonnes critiques.
+- en cas de colonne absente : ecrit `FAIL` et stop la tache.
+
 ### 05) Validation
 
 - Execute `05_validation.py`.
 - Verifie `anime_gold_validated.csv`, `anime_gold.json`, `rapport_validation.txt`.
 - Double-run + hash combine des 3 fichiers.
+
+**Detail des commandes Bash (05_validation)**
+- controle les 3 artefacts de validation (`-s`).
+- calcule 3 hashes (csv/json/rapport), puis un hash combine.
+- compare run 1 vs run 2 pour verifier la stabilite de la sortie.
+- `grep -q 'Pipeline Data Refinement terminé !'` : confirme la fin correcte du script.
 
 ### 06) Indexation Elasticsearch
 
@@ -231,6 +270,12 @@ run_06_indexation = BashOperator(
 **Ce que ca fait**
 - Lance l'indexation finale dans Elasticsearch.
 - Verifie que l'index `anime` contient des documents.
+
+**Detail des commandes Bash (06_indexation_elasticsearch)**
+- `python /opt/airflow/scripts/script_prof.py` : lance l'indexation (upsert) dans ES.
+- `curl -s http://elasticsearch:9200/anime/_count` : interroge ES pour connaitre le nombre de docs.
+- `python3 -c "import json..."` : parse la reponse JSON et extrait `count`.
+- `if [ "$count" -gt 0 ]` : marque `OK` si l'index contient au moins 1 document.
 
 ---
 
