@@ -388,6 +388,17 @@ Réponse :
 Oui, tu peux le faire via le DAG. Dans `anidata_full_pipeline`, lance le DAG puis attends que la tâche
 `06_indexation_elasticsearch` s’exécute (c’est elle qui lance `script_prof.py` et recrée l’index `anime`).
 
+Question :
+L'indexation Elasticsearch est-elle forcément refaite après DAG1 ?
+
+Réponse :
+Oui, si `anidata_full_pipeline` va jusqu’à la tâche `06_indexation_elasticsearch`, alors l’indexation est refaite à chaque run de DAG1.
+
+Dans ton DAG :
+- `06_indexation_elasticsearch` lance `script_prof.py`
+- `script_prof.py` indexe dans `anime` en mode incrémental/upsert
+- il ne supprime pas forcément l’index : il met à jour/ajoute selon les IDs
+
 En pratique : c’est `script_prof.py` qui “fabrique” la base de données pour Grafana, c’est-à-dire l’index Elasticsearch `anime` (et donc les documents qui alimentent les dashboards).
 
 Note : `script_prof.py` fait maintenant une **indexation incrémentale / upsert** :
