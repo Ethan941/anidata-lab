@@ -131,6 +131,7 @@ services:
       - AIRFLOW__DATABASE__SQL_ALCHEMY_CONN=${AIRFLOW__DATABASE__SQL_ALCHEMY_CONN}
       - AIRFLOW__CORE__FERNET_KEY=${AIRFLOW__CORE__FERNET_KEY}
       - AIRFLOW__CORE__LOAD_EXAMPLES=${AIRFLOW__CORE__LOAD_EXAMPLES}
+      - AIRFLOW__API__AUTH_BACKENDS=airflow.api.auth.backend.basic_auth
     volumes:
       - ./airflow/logs:/opt/airflow/logs
       - ./data:/opt/airflow/data
@@ -156,6 +157,7 @@ services:
       - AIRFLOW__WEBSERVER__EXPOSE_CONFIG=${AIRFLOW__WEBSERVER__EXPOSE_CONFIG}
       - AIRFLOW__CORE__DAGS_ARE_PAUSED_AT_CREATION=${AIRFLOW__CORE__DAGS_ARE_PAUSED_AT_CREATION}
       - AIRFLOW__WEBSERVER__WORKERS=1
+      - AIRFLOW__API__AUTH_BACKENDS=airflow.api.auth.backend.basic_auth
     volumes:
       - ./airflow/logs:/opt/airflow/logs
       - ./data:/opt/airflow/data
@@ -189,6 +191,7 @@ services:
       - AIRFLOW__CORE__FERNET_KEY=${AIRFLOW__CORE__FERNET_KEY}
       - AIRFLOW__CORE__LOAD_EXAMPLES=${AIRFLOW__CORE__LOAD_EXAMPLES}
       - AIRFLOW__CORE__DAGS_ARE_PAUSED_AT_CREATION=${AIRFLOW__CORE__DAGS_ARE_PAUSED_AT_CREATION}
+      - AIRFLOW__API__AUTH_BACKENDS=airflow.api.auth.backend.basic_auth
     volumes:
       - ./airflow/logs:/opt/airflow/logs
       - ./data:/opt/airflow/data

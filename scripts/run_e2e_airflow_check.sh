@@ -32,6 +32,8 @@ POLL_SECONDS="${POLL_SECONDS:-10}"
 MAX_POLLS="${MAX_POLLS:-60}"
 API_RETRIES="${API_RETRIES:-12}"
 API_RETRY_DELAY_SECONDS="${API_RETRY_DELAY_SECONDS:-5}"
+CURL_CONNECT_TIMEOUT_SECONDS="${CURL_CONNECT_TIMEOUT_SECONDS:-5}"
+CURL_MAX_TIME_SECONDS="${CURL_MAX_TIME_SECONDS:-20}"
 
 auth_args=(-u "${AIRFLOW_USER}:${AIRFLOW_PASSWORD}")
 
@@ -44,13 +46,19 @@ airflow_api_request() {
 
   for ((attempt=1; attempt<=API_RETRIES; attempt++)); do
     if [[ -n "${data}" ]]; then
-      if response="$(curl -sS --fail "${auth_args[@]}" -X "${method}" \
+      if response="$(curl -sS --fail \
+        --connect-timeout "${CURL_CONNECT_TIMEOUT_SECONDS}" \
+        --max-time "${CURL_MAX_TIME_SECONDS}" \
+        "${auth_args[@]}" -X "${method}" \
         "${url}" -H "Content-Type: application/json" -d "${data}" 2>/dev/null)"; then
         echo "${response}"
         return 0
       fi
     else
-      if response="$(curl -sS --fail "${auth_args[@]}" -X "${method}" "${url}" 2>/dev/null)"; then
+      if response="$(curl -sS --fail \
+        --connect-timeout "${CURL_CONNECT_TIMEOUT_SECONDS}" \
+        --max-time "${CURL_MAX_TIME_SECONDS}" \
+        "${auth_args[@]}" -X "${method}" "${url}" 2>/dev/null)"; then
         echo "${response}"
         return 0
       fi
