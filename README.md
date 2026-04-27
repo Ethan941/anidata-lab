@@ -15,6 +15,7 @@
    - [Architecture du projet](#architecture-du-projet)
    - [Consommation mémoire (optimisée pour 8 Go)](#consommation-memoire)
 3. **Exploitation & maintenance**
+   - [CI GitHub Actions & protection de main](#ci-github-actions--protection-de-main)
    - [Commandes utiles](#commandes-utiles)
    - [Dépannage](#depannage)
      - cas fréquents couverts : Elasticsearch (Linux), Airflow DB init, OOM webserver, Grafana sans données, imports Airflow Cursor, reset complet
@@ -258,6 +259,42 @@ Exemple concret :
 Différence clé :
 - `cron` déclenche “à l’heure” une commande.
 - `Airflow` orchestre des pipelines (dépendances entre étapes, exécution pilotée, historisation, etc.).
+
+---
+
+## ✅ CI GitHub Actions & protection de main
+
+<a id="ci-github-actions--protection-de-main"></a>
+
+Le workflow `/.github/workflows/ci.yml` automatise les contrôles qualité à chaque
+`push` et `pull_request` :
+
+- **Trigger** : `push` + `pull_request`
+- **Runner** : `ubuntu-latest`
+- **Job** : `lint-test`
+- **Steps principales** :
+  - checkout du dépôt
+  - setup Python 3.11
+  - installation des dépendances dev (`requirements-dev.txt`)
+  - lint avec `ruff`
+  - tests avec `pytest` + couverture (`--cov-fail-under=80`)
+
+Objectif : empêcher l’intégration de changements cassés et garantir un niveau
+minimum de qualité avant merge.
+
+### Activer la protection de `main` (PR obligatoire + CI verte)
+
+Dans GitHub :
+
+1. Aller dans **Settings** → **Branches** → **Add branch protection rule**
+2. `Branch name pattern` : `main`
+3. Cocher **Require a pull request before merging**
+4. (Optionnel recommandé) `Require approvals = 1`
+5. Cocher **Require status checks to pass before merging**
+6. Dans la liste des checks, sélectionner le check CI (après le 1er run), généralement :
+   **Lint and Tests (Python 3.11)**
+7. Cocher **Require branches to be up to date before merging**
+8. Cliquer **Save changes**
 
 ---
 
