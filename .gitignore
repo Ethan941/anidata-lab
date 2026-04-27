@@ -1,5 +1,6 @@
 # Environnement virtuel Python
 .venv/
+.env
 
 # Données (trop volumineuses pour Git)
 data/*.csv
