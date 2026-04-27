@@ -6,20 +6,22 @@
 ---
 
 ## Sommaire
-1. **Démarrage rapide**
+1. **Démarrage**
    - [Prérequis](#prerequis)
    - [Installation (5 minutes)](#installation-5-minutes)
    - [Utilisation au fil de la semaine](#utilisation-au-fil-de-la-semaine)
-2. **Comprendre le projet**
+2. **Architecture & contexte**
    - [Documentation du projet](#documentation-du-projet)
    - [Architecture du projet](#architecture-du-projet)
    - [Consommation mémoire (optimisée pour 8 Go)](#consommation-memoire)
-3. **Exploitation & maintenance**
+3. **CI/CD & déploiement**
    - [CI GitHub Actions & protection de main](#ci-github-actions--protection-de-main)
-   - [Feuille de route intégrée : CI verte -> relance Airflow -> DAGs automatiques](#feuille-de-route-integree--ci-verte---relance-airflow---dags-automatiques)
+   - [Feuille de route intégrée : CI verte -> relance Airflow -> DAGs automatiques](#feuille-de-route-integree)
+   - [Après "✅ Image publiée sur GHCR" : ce que ça signifie vraiment](#apres-ghcr)
+   - [Peut-on automatiser totalement après CI verte ?](#automatisation-apres-ci)
+4. **Exploitation quotidienne**
    - [Commandes utiles](#commandes-utiles)
    - [Dépannage](#depannage)
-     - cas fréquents couverts : Elasticsearch (Linux), Airflow DB init, OOM webserver, Grafana sans données, imports Airflow Cursor, reset complet
    - [Ressources](#ressources)
 
 ## 📋 Prérequis
@@ -592,6 +594,8 @@ Dans GitHub :
 
 ### Feuille de route intégrée : CI verte -> relance Airflow -> DAGs automatiques
 
+<a id="feuille-de-route-integree"></a>
+
 Objectif : relancer automatiquement le flux Airflow uniquement après validation
 des tests CI, sans modifier `scraper.py`.
 
@@ -620,6 +624,61 @@ des tests CI, sans modifier `scraper.py`.
    - appliquer les bonnes pratiques (README, CHANGELOG, schéma d'architecture)
    - finaliser le README avec la procédure reproductible
    - valider la reproductibilité de bout en bout
+
+### Après "✅ Image publiée sur GHCR" : ce que ça signifie vraiment
+
+<a id="apres-ghcr"></a>
+
+Quand le workflow affiche **"✅ Image publiée sur GHCR"**, cela veut dire uniquement :
+
+- GitHub Actions a **build** l'image Docker.
+- GitHub Actions a **push** l'image dans le registry GHCR.
+
+Ce message **ne redémarre pas automatiquement** ton Airflow local.
+
+Pour appliquer réellement la nouvelle image sur ta machine :
+
+```bash
+./scripts/deploy_airflow_from_ghcr.sh
+./scripts/run_e2e_airflow_check.sh
+```
+
+En clair :
+
+- **GitHub Actions** = build/publish
+- **Ton poste local** = pull/restart/run DAG
+
+### Peut-on automatiser totalement après CI verte ?
+
+<a id="automatisation-apres-ci"></a>
+
+Oui, mais pas avec un runner GitHub hébergé standard tout seul.
+
+Pourquoi :
+
+- GitHub Actions cloud sait builder/pusher GHCR
+- mais il n'a pas accès à ton Docker local sur ton Mac
+
+Pour automatiser "après CI verte => scrape/restart", tu as 3 options :
+
+1. **Self-hosted runner sur ton Mac** (recommandé ici)
+   - le job tourne directement sur ta machine
+   - peut exécuter `docker compose pull/up` + trigger DAG
+
+2. **Serveur de déploiement (VM/VPS)**
+   - GitHub déclenche le déploiement sur ce serveur
+   - Airflow tourne sur ce serveur (pas sur ton Mac)
+
+3. **Watchtower (auto-update d'image)**
+   - détecte la nouvelle image GHCR et redémarre les conteneurs
+   - il faut gérer séparément le trigger DAG ensuite
+
+Approche simple et propre recommandée pour ce projet :
+
+1. garder la CI cloud pour build + push GHCR
+2. ajouter un job `deploy-local` sur un runner self-hosted qui exécute :
+   - `./scripts/deploy_airflow_from_ghcr.sh`
+   - `./scripts/run_e2e_airflow_check.sh`
 
 ---
 
