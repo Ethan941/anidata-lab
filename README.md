@@ -244,6 +244,38 @@ Un dashboard de démarrage est déjà pré-configuré !
 Ouvrir **Airflow** http://localhost:8080 (admin / admin).
 Créer vos DAGs dans `airflow/dags/` — ils apparaissent automatiquement.
 
+### Brancher le pipeline Airflow (5 étapes)
+
+Le DAG `airflow/dags/anidata_scraper_pipeline_dag.py` enchaîne automatiquement :
+
+1. **Scraper** : `python -m anidata_scraper.scraper`
+2. **Nettoyage** : `python /opt/airflow/scripts/03_nettoyage.py`
+3. **Feature engineering** : `python /opt/airflow/scripts/04_feature_engineering.py`
+4. **Validation** : `python /opt/airflow/scripts/05_validation.py`
+5. **Elasticsearch** : `python /opt/airflow/scripts/script_prof.py`
+
+Chaînage logique :
+
+`Scraper -> Nettoyage -> Feature engineering -> Validation -> Elasticsearch`
+
+Automatisation :
+
+- planification quotidienne (`schedule="@daily"`)
+- exécution manuelle possible via **Trigger DAG** dans l'UI
+- reprise propre après échec grâce à `retries=1`
+
+Configuration scraper (optionnelle) :
+
+- variable d'environnement `ANIDATA_SCRAPER_BASE_URL`
+- valeur par défaut : `http://host.docker.internal:8088` (mock-site local sur Mac)
+
+Commandes utiles pour appliquer les changements DAG :
+
+```bash
+docker compose restart airflow-scheduler airflow-webserver
+docker compose logs -f airflow-scheduler
+```
+
 ### Airflow vs Cron (pour bien comprendre)
 
 Un cron (souvent écrit `cron job`) sur Linux est un système de planification de tâches automatiques.
@@ -281,6 +313,267 @@ Le workflow `/.github/workflows/ci.yml` automatise les contrôles qualité à ch
 
 Objectif : empêcher l’intégration de changements cassés et garantir un niveau
 minimum de qualité avant merge.
+
+### Focus sur `ci-cd.yml` (lignes 64-67)
+
+Dans le job `tests`, ce bloc :
+
+```yaml
+steps:
+  - uses: actions/checkout@v4
+  - uses: actions/setup-python@v5
+```
+
+prépare l’environnement de test avant l’installation des dépendances.
+
+- `steps:` démarre la liste des actions exécutées dans le job.
+- `actions/checkout@v4` clone le dépôt dans le runner GitHub Actions.
+  Sans cette étape, le runner n’a pas accès au code (`anidata_scraper/`, `tests/`, etc.).
+- `actions/setup-python@v5` installe et active Python dans la version demandée
+  par la matrice (`${{ matrix.python-version }}`), ici `3.10` et `3.11`.
+- ce step active aussi `cache: pip` (défini juste après), ce qui réutilise les
+  paquets déjà installés entre runs et accélère la CI.
+
+En résumé : `checkout` récupère le code, puis `setup-python` prépare l’interpréteur
+et le cache pour que `pip install` et `pytest` fonctionnent de façon reproductible.
+
+### Build Docker Airflow + publication GHCR
+
+Le même workflow inclut un job `docker-build-push` qui :
+
+- construit l’image `airflow/Dockerfile` (contenant les DAGs, scripts et le package `anidata-scraper`)
+- publie vers `ghcr.io/<owner>/anidata-airflow` sur les événements `push`
+- build sans push sur les `pull_request` (validation seulement)
+- applique un versioning des tags :
+  - `latest` (branche par défaut)
+  - `sha-<commit>` (traçabilité immuable)
+  - `vX.Y.Z` / semver (quand push d’un tag Git)
+
+### Registry container : rôle et intérêt de GHCR
+
+Un container registry sert à stocker et distribuer des images Docker versionnées.
+Au lieu de builder en local sur chaque machine, on pull une image déjà prête.
+
+Pourquoi GHCR :
+
+- intégré à GitHub Actions (auth simple avec `GITHUB_TOKEN`)
+- permissions centralisées par repo/org GitHub
+- bonne traçabilité image <-> commit/PR/release
+- pratique pour déployer la même image en local, CI et prod
+
+### Authentification GHCR dans GitHub Actions
+
+Le workflow se connecte à GHCR avec :
+
+- `username: ${{ github.actor }}`
+- `password: ${{ secrets.GITHUB_TOKEN }}`
+
+Prérequis :
+
+- `Settings > Actions > General` : autoriser les workflows à lire/écrire les packages
+- dans le job, permissions :
+  - `contents: read`
+  - `packages: write`
+
+### Build local de l'image Airflow
+
+```bash
+docker build -f airflow/Dockerfile -t anidata-airflow:local .
+docker run --rm anidata-airflow:local python -m anidata_scraper.scraper --help
+docker run --rm anidata-airflow:local python -m anidata_scraper.scraper --base-url http://localhost:8088 --output-dir ./data/raw
+```
+
+Explication de la commande :
+
+`docker run --rm anidata-airflow:local python -m anidata_scraper.scraper --base-url http://localhost:8088 --output-dir ./data/raw`
+
+- **1. `docker run --rm anidata-airflow:local`**
+  - lance un conteneur à partir de ton image Docker
+  - `anidata-airflow:local` = ton image
+  - `--rm` = supprime le conteneur après exécution
+
+- **2. `python -m anidata_scraper.scraper`**
+  - lance ton script Python
+  - `-m` = exécute un module Python
+  - `anidata_scraper.scraper` = ton scraper
+
+- **3. `--base-url http://localhost:8088`**
+  - URL du site à scraper
+  - ici : un mock-site local (site de test)
+
+- **4. `--output-dir ./data/raw`**
+  - dossier de sortie pour sauvegarder les données scrapées
+  - ici : `data/raw` (par exemple en JSON)
+
+En résumé :
+Cette commande lance le scraper dans Docker, récupère les données depuis le site local, puis les enregistre dans un dossier de sortie.
+
+### Exemple réel d'exécution Docker (Mac)
+
+Commande exécutée :
+
+```bash
+docker run --rm \
+  -v $(pwd)/data:/opt/airflow/data \
+  anidata-airflow:local \
+  python -m anidata_scraper.scraper \
+  --base-url http://host.docker.internal:8088 \
+  --output-dir /opt/airflow/data/raw
+```
+
+Logs observés (extrait) :
+
+```text
+<frozen runpy>:128: RuntimeWarning: 'anidata_scraper.scraper' found in sys.modules after import of package 'anidata_scraper', but prior to execution of 'anidata_scraper.scraper'; this may result in unpredictable behaviour
+2026-04-27 10:09:30,820 [INFO] Début du scraping — 4 pages de catalogue à parcourir
+2026-04-27 10:09:30,890 [INFO] Page 1 : 30 animes extraits
+2026-04-27 10:09:30,968 [INFO] Page 2 : 30 animes extraits
+2026-04-27 10:09:31,045 [INFO] Page 3 : 30 animes extraits
+2026-04-27 10:09:31,106 [INFO] Page 4 : 13 animes extraits
+2026-04-27 10:09:31,106 [INFO] Enrichissement via les pages détail (103 animes)...
+2026-04-27 10:09:32,243 [INFO]   Enrichis : 20/103
+2026-04-27 10:09:33,398 [INFO]   Enrichis : 40/103
+2026-04-27 10:09:34,684 [INFO]   Enrichis : 60/103
+2026-04-27 10:09:35,976 [INFO]   Enrichis : 80/103
+2026-04-27 10:09:37,098 [INFO]   Enrichis : 100/103
+2026-04-27 10:09:37,327 [INFO] 8 actualités récupérées
+2026-04-27 10:09:37,333 [INFO] Scraping terminé : 103 animes, 8 news → /opt/airflow/data/raw/anime_20260427_100937.json
+
+✓ Fichier produit : /opt/airflow/data/raw/anime_20260427_100937.json
+```
+
+Résultat :
+
+- scraping OK
+- `103` animes récupérés
+- `8` actualités récupérées
+- fichier généré dans `data/raw/anime_20260427_100937.json` (via le volume monté)
+- le warning Python est non bloquant
+
+Vérification locale :
+
+```bash
+ls -lh data/raw
+head -n 40 data/raw/anime_20260427_100937.json
+```
+
+### Utiliser l'image GHCR dans docker-compose
+
+`docker-compose.yml` est configuré pour utiliser :
+
+- `AIRFLOW_IMAGE` depuis `.env`
+- valeur par défaut : `ghcr.io/your-github-user/anidata-airflow:latest`
+
+Exemple :
+
+```bash
+# pull image distante puis relance Airflow
+docker compose pull airflow-init airflow-webserver airflow-scheduler
+docker compose up -d airflow-init airflow-webserver airflow-scheduler
+```
+
+### Pourquoi définir `AIRFLOW_IMAGE=anidata-airflow:local` en local
+
+Dans `docker-compose.yml`, les services Airflow utilisent cette syntaxe :
+
+`image: ${AIRFLOW_IMAGE:-ghcr.io/your-github-user/anidata-airflow:latest}`
+
+Ce que cela signifie :
+
+- si `AIRFLOW_IMAGE` est défini dans `.env`, Docker Compose utilise cette valeur
+- sinon, Docker Compose prend la valeur par défaut (fallback) après `:-`
+- ici, le fallback `ghcr.io/your-github-user/...` est un placeholder d'exemple
+
+Pourquoi tu as dû mettre `AIRFLOW_IMAGE=anidata-airflow:local` :
+
+- en local, ton image réellement disponible est `anidata-airflow:local`
+- sans cette variable, Compose tente de pull le placeholder GHCR
+- le placeholder n'existe pas dans ton namespace, donc erreur `403 Forbidden`
+
+Valeurs recommandées selon le contexte :
+
+- **Développement local** : `AIRFLOW_IMAGE=anidata-airflow:local`
+- **Registry GHCR (CI/prod)** : `AIRFLOW_IMAGE=ghcr.io/<owner>/anidata-airflow:latest`
+- **Release versionnée** : `AIRFLOW_IMAGE=ghcr.io/<owner>/anidata-airflow:v1.0.0`
+
+Cette variable évite de modifier `docker-compose.yml` entre les environnements :
+on change uniquement `.env`.
+
+### Procédure complète (A à Z)
+
+1. **Écrire l'image Airflow custom**
+   - créer `airflow/Dockerfile` à partir de `apache/airflow:2.8.1-python3.11`
+   - copier `airflow/dags`, `airflow/scripts`, `airflow/plugins`, `anidata-scraper`
+   - installer les dépendances Python nécessaires + `anidata-scraper`
+
+2. **Builder et tester l'image en local**
+   ```bash
+   docker build -f airflow/Dockerfile -t anidata-airflow:local .
+   docker run --rm anidata-airflow:local airflow version
+   docker run --rm anidata-airflow:local python -m anidata_scraper.scraper --help
+   ```
+
+3. **Comprendre le rôle du registry**
+   - un registry stocke des images Docker versionnées et partageables
+   - GHCR permet d'utiliser GitHub comme source unique d'images (CI/CD + déploiement)
+
+4. **Étendre GitHub Actions pour build + push GHCR**
+   - ajouter un job `docker-build-push` dans `/.github/workflows/ci.yml`
+   - exécuter le job après `lint-test` (`needs: lint-test`)
+   - build sur `pull_request`, build + push sur `push`
+
+5. **Configurer l'authentification GHCR**
+   - login dans le workflow via `docker/login-action`
+   - `username: ${{ github.actor }}`
+   - `password: ${{ secrets.GITHUB_TOKEN }}`
+   - permissions du job : `contents: read`, `packages: write`
+
+6. **Appliquer le versioning des images**
+   - `latest` sur la branche par défaut
+   - `sha-<commit>` sur chaque commit
+   - `vX.Y.Z` (semver) lors d'un tag Git
+   - exemple release :
+   ```bash
+   git tag v1.0.0
+   git push origin v1.0.0
+   ```
+
+7. **Adapter `docker-compose.yml` pour GHCR**
+   - utiliser `image: ${AIRFLOW_IMAGE:-ghcr.io/<owner>/anidata-airflow:latest}` pour les services Airflow
+   - supprimer `_PIP_ADDITIONAL_REQUIREMENTS` (packages déjà inclus dans l'image)
+   - conserver les volumes runtime nécessaires (`logs`, `data`)
+
+8. **Configurer `.env`**
+   ```env
+   AIRFLOW_IMAGE=ghcr.io/<owner>/anidata-airflow:latest
+   ```
+
+9. **Valider la configuration compose**
+   ```bash
+   docker compose config
+   ```
+
+10. **Pousser et vérifier la CI/CD**
+    ```bash
+    git add airflow/Dockerfile .github/workflows/ci.yml docker-compose.yml .env README.md
+    git commit -m "Add Airflow image build and GHCR publishing pipeline"
+    git push
+    ```
+    - vérifier les runs dans l'onglet **Actions**
+    - vérifier la présence des images/tags dans GHCR
+
+11. **Déployer l'image GHCR avec Compose**
+    ```bash
+    docker compose pull airflow-init airflow-webserver airflow-scheduler
+    docker compose up -d airflow-init airflow-webserver airflow-scheduler
+    docker compose ps
+    ```
+
+12. **Protéger `main`**
+    - `Require a pull request before merging`
+    - `Require status checks to pass before merging` (sélectionner les checks CI)
+    - `Require branches to be up to date before merging`
+    - sauvegarder la règle
 
 ### Activer la protection de `main` (PR obligatoire + CI verte)
 

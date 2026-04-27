@@ -106,7 +106,7 @@ services:
   # AIRFLOW - Init (exécuté une seule fois)
   # ==========================================
   airflow-init:
-    image: apache/airflow:2.8.1-python3.11
+    image: ${AIRFLOW_IMAGE:-ghcr.io/your-github-user/anidata-airflow:latest}
     container_name: anidata-airflow-init
     entrypoint: /bin/bash
     command:
@@ -132,9 +132,7 @@ services:
       - AIRFLOW__CORE__FERNET_KEY=${AIRFLOW__CORE__FERNET_KEY}
       - AIRFLOW__CORE__LOAD_EXAMPLES=${AIRFLOW__CORE__LOAD_EXAMPLES}
     volumes:
-      - ./airflow/dags:/opt/airflow/dags
       - ./airflow/logs:/opt/airflow/logs
-      - ./airflow/plugins:/opt/airflow/plugins
       - ./data:/opt/airflow/data
     depends_on:
       postgres:
@@ -146,7 +144,7 @@ services:
   # AIRFLOW - Webserver
   # ==========================================
   airflow-webserver:
-    image: apache/airflow:2.8.1-python3.11
+    image: ${AIRFLOW_IMAGE:-ghcr.io/your-github-user/anidata-airflow:latest}
     container_name: anidata-airflow-webserver
     command: webserver
     environment:
@@ -158,12 +156,8 @@ services:
       - AIRFLOW__WEBSERVER__EXPOSE_CONFIG=${AIRFLOW__WEBSERVER__EXPOSE_CONFIG}
       - AIRFLOW__CORE__DAGS_ARE_PAUSED_AT_CREATION=${AIRFLOW__CORE__DAGS_ARE_PAUSED_AT_CREATION}
       - AIRFLOW__WEBSERVER__WORKERS=1
-      - _PIP_ADDITIONAL_REQUIREMENTS=pandas elasticsearch matplotlib seaborn apache-airflow-providers-elasticsearch
     volumes:
-      - ./airflow/dags:/opt/airflow/dags
       - ./airflow/logs:/opt/airflow/logs
-      - ./airflow/plugins:/opt/airflow/plugins
-      - ./airflow/scripts:/opt/airflow/scripts
       - ./data:/opt/airflow/data
     ports:
       - "8080:8080"
@@ -186,7 +180,7 @@ services:
   # AIRFLOW - Scheduler
   # ==========================================
   airflow-scheduler:
-    image: apache/airflow:2.8.1-python3.11
+    image: ${AIRFLOW_IMAGE:-ghcr.io/your-github-user/anidata-airflow:latest}
     container_name: anidata-airflow-scheduler
     command: scheduler
     environment:
@@ -195,12 +189,8 @@ services:
       - AIRFLOW__CORE__FERNET_KEY=${AIRFLOW__CORE__FERNET_KEY}
       - AIRFLOW__CORE__LOAD_EXAMPLES=${AIRFLOW__CORE__LOAD_EXAMPLES}
       - AIRFLOW__CORE__DAGS_ARE_PAUSED_AT_CREATION=${AIRFLOW__CORE__DAGS_ARE_PAUSED_AT_CREATION}
-      - _PIP_ADDITIONAL_REQUIREMENTS=pandas elasticsearch matplotlib seaborn apache-airflow-providers-elasticsearch
     volumes:
-      - ./airflow/dags:/opt/airflow/dags
       - ./airflow/logs:/opt/airflow/logs
-      - ./airflow/plugins:/opt/airflow/plugins
-      - ./airflow/scripts:/opt/airflow/scripts
       - ./data:/opt/airflow/data
     mem_limit: 1g
     depends_on:
