@@ -16,6 +16,7 @@
    - [Consommation mémoire (optimisée pour 8 Go)](#consommation-memoire)
 3. **Exploitation & maintenance**
    - [CI GitHub Actions & protection de main](#ci-github-actions--protection-de-main)
+   - [Feuille de route intégrée : CI verte -> relance Airflow -> DAGs automatiques](#feuille-de-route-integree--ci-verte---relance-airflow---dags-automatiques)
    - [Commandes utiles](#commandes-utiles)
    - [Dépannage](#depannage)
      - cas fréquents couverts : Elasticsearch (Linux), Airflow DB init, OOM webserver, Grafana sans données, imports Airflow Cursor, reset complet
@@ -298,7 +299,7 @@ Différence clé :
 
 <a id="ci-github-actions--protection-de-main"></a>
 
-Le workflow `/.github/workflows/ci.yml` automatise les contrôles qualité à chaque
+Le workflow `/.github/workflows/ci-cd.yml` automatise les contrôles qualité à chaque
 `push` et `pull_request` :
 
 - **Trigger** : `push` + `pull_request`
@@ -518,7 +519,7 @@ on change uniquement `.env`.
    - GHCR permet d'utiliser GitHub comme source unique d'images (CI/CD + déploiement)
 
 4. **Étendre GitHub Actions pour build + push GHCR**
-   - ajouter un job `docker-build-push` dans `/.github/workflows/ci.yml`
+   - ajouter un job `docker-build-push` dans `/.github/workflows/ci-cd.yml`
    - exécuter le job après `lint-test` (`needs: lint-test`)
    - build sur `pull_request`, build + push sur `push`
 
@@ -555,7 +556,7 @@ on change uniquement `.env`.
 
 10. **Pousser et vérifier la CI/CD**
     ```bash
-    git add airflow/Dockerfile .github/workflows/ci.yml docker-compose.yml .env README.md
+    git add airflow/Dockerfile .github/workflows/ci-cd.yml docker-compose.yml .env README.md
     git commit -m "Add Airflow image build and GHCR publishing pipeline"
     git push
     ```
@@ -588,6 +589,37 @@ Dans GitHub :
    **Lint and Tests (Python 3.11)**
 7. Cocher **Require branches to be up to date before merging**
 8. Cliquer **Save changes**
+
+### Feuille de route intégrée : CI verte -> relance Airflow -> DAGs automatiques
+
+Objectif : relancer automatiquement le flux Airflow uniquement après validation
+des tests CI, sans modifier `scraper.py`.
+
+1. **Écrire `scraper_dag.py`**
+   - utiliser `PythonOperator`
+   - ajouter des logs explicites (début, fin, erreurs)
+   - utiliser les Variables Airflow pour les paramètres
+
+2. **Écrire `etl_dag.py`**
+   - réutiliser la connexion Elasticsearch existante
+   - faire le bulk indexing côté ETL
+   - chaîner en amont avec `TriggerDagRunOperator`
+
+3. **Push + attente CI**
+   - push du code
+   - attendre `lint` + `tests` en vert
+   - vérifier que l'image GHCR est publiée
+   - redémarrer `docker compose` pour recharger image et DAGs
+
+4. **Démonstration intégrée**
+   - déclencher manuellement le DAG scraper
+   - vérifier la propagation automatique jusqu'aux DAGs aval
+   - vérifier la visualisation finale dans Grafana
+
+5. **Documentation finale**
+   - appliquer les bonnes pratiques (README, CHANGELOG, schéma d'architecture)
+   - finaliser le README avec la procédure reproductible
+   - valider la reproductibilité de bout en bout
 
 ---
 
