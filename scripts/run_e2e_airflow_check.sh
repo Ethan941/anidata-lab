@@ -30,14 +30,44 @@ ES_BASE_URL="${ES_BASE_URL:-http://localhost:9200}"
 ES_INDEX="${ES_INDEX:-anime}"
 POLL_SECONDS="${POLL_SECONDS:-10}"
 MAX_POLLS="${MAX_POLLS:-60}"
+API_RETRIES="${API_RETRIES:-12}"
+API_RETRY_DELAY_SECONDS="${API_RETRY_DELAY_SECONDS:-5}"
 
 auth_args=(-u "${AIRFLOW_USER}:${AIRFLOW_PASSWORD}")
 
+airflow_api_request() {
+  local method="$1"
+  local endpoint="$2"
+  local data="${3:-}"
+  local url="${AIRFLOW_BASE_URL}${endpoint}"
+  local attempt response
+
+  for ((attempt=1; attempt<=API_RETRIES; attempt++)); do
+    if [[ -n "${data}" ]]; then
+      if response="$(curl -sS --fail "${auth_args[@]}" -X "${method}" \
+        "${url}" -H "Content-Type: application/json" -d "${data}" 2>/dev/null)"; then
+        echo "${response}"
+        return 0
+      fi
+    else
+      if response="$(curl -sS --fail "${auth_args[@]}" -X "${method}" "${url}" 2>/dev/null)"; then
+        echo "${response}"
+        return 0
+      fi
+    fi
+    echo "API call failed (${endpoint}), retry ${attempt}/${API_RETRIES}..."
+    sleep "${API_RETRY_DELAY_SECONDS}"
+  done
+
+  echo "Airflow API not reachable after retries: ${endpoint}" >&2
+  return 1
+}
+
+echo "==> Checking Airflow API readiness"
+airflow_api_request "GET" "/api/v1/health" >/dev/null
+
 echo "==> Trigger DAG: ${SCRAPER_DAG_ID}"
-TRIGGER_RESPONSE="$(curl -sS "${auth_args[@]}" -X POST \
-  "${AIRFLOW_BASE_URL}/api/v1/dags/${SCRAPER_DAG_ID}/dagRuns" \
-  -H "Content-Type: application/json" \
-  -d '{"conf":{"source":"e2e-script"}}')"
+TRIGGER_RESPONSE="$(airflow_api_request "POST" "/api/v1/dags/${SCRAPER_DAG_ID}/dagRuns" '{"conf":{"source":"e2e-script"}}')"
 
 DAG_RUN_ID="$(python3 -c 'import json,sys; print(json.loads(sys.stdin.read())["dag_run_id"])' <<< "${TRIGGER_RESPONSE}")"
 echo "Triggered run id: ${DAG_RUN_ID}"
@@ -45,8 +75,7 @@ echo "Triggered run id: ${DAG_RUN_ID}"
 echo "==> Waiting for scraper DAG completion"
 SCRAPER_STATE="unknown"
 for ((i=1; i<=MAX_POLLS; i++)); do
-  RUN_RESPONSE="$(curl -sS "${auth_args[@]}" \
-    "${AIRFLOW_BASE_URL}/api/v1/dags/${SCRAPER_DAG_ID}/dagRuns/${DAG_RUN_ID}")"
+  RUN_RESPONSE="$(airflow_api_request "GET" "/api/v1/dags/${SCRAPER_DAG_ID}/dagRuns/${DAG_RUN_ID}")"
   SCRAPER_STATE="$(python3 -c 'import json,sys; print(json.loads(sys.stdin.read()).get("state","unknown"))' <<< "${RUN_RESPONSE}")"
   echo "Poll ${i}/${MAX_POLLS}: state=${SCRAPER_STATE}"
 
@@ -67,8 +96,7 @@ fi
 
 if [[ -n "${DOWNSTREAM_DAG_ID}" ]]; then
   echo "==> Checking optional downstream DAG trigger: ${DOWNSTREAM_DAG_ID}"
-  DOWNSTREAM_RESPONSE="$(curl -sS "${auth_args[@]}" \
-    "${AIRFLOW_BASE_URL}/api/v1/dags/${DOWNSTREAM_DAG_ID}/dagRuns?limit=1&order_by=-start_date")"
+  DOWNSTREAM_RESPONSE="$(airflow_api_request "GET" "/api/v1/dags/${DOWNSTREAM_DAG_ID}/dagRuns?limit=1&order_by=-start_date")"
   DOWNSTREAM_LATEST_STATE="$(python3 -c 'import json,sys; d=json.loads(sys.stdin.read()); runs=d.get("dag_runs",[]); print(runs[0].get("state","none") if runs else "none")' <<< "${DOWNSTREAM_RESPONSE}")"
   echo "Latest downstream DAG state: ${DOWNSTREAM_LATEST_STATE}"
 fi
