@@ -38,6 +38,9 @@ jobs:
   lint:
     name: Lint (ruff)
     runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: anidata-scraper
     steps:
       - uses: actions/checkout@v4
 
@@ -47,7 +50,7 @@ jobs:
           cache: pip
 
       - run: pip install ruff
-      - run: ruff check anidata_scraper/ tests/ 
+      - run: ruff check anidata_scraper/ tests/
       #Bien vérifier  que le fichier test est à la racine du projet.
 
   # ---------------------------------------------------------------------------
@@ -57,6 +60,9 @@ jobs:
   tests:
     name: Tests (Python ${{ matrix.python-version }})
     runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: anidata-scraper
     strategy:
       fail-fast: false
       matrix:
