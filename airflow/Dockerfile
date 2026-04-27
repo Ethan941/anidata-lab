@@ -5,8 +5,8 @@ USER root
 # Bundle project artifacts needed at runtime.
 COPY airflow/dags /opt/airflow/dags
 COPY airflow/scripts /opt/airflow/scripts
-COPY airflow/plugins /opt/airflow/plugins
 COPY anidata-scraper /opt/airflow/anidata-scraper
+RUN mkdir -p /opt/airflow/plugins
 
 RUN chown -R airflow:root /opt/airflow/dags /opt/airflow/scripts /opt/airflow/plugins /opt/airflow/anidata-scraper
 
