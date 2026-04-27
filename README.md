@@ -718,6 +718,138 @@ curl http://localhost:8080/health
 2. Dans Grafana → Configuration → Data Sources → tester la connexion
 3. Relancer Logstash si besoin : `docker compose --profile ingest up logstash`
 
+### GHCR : `denied`, `403 Forbidden` et `no matching manifest for linux/arm64/v8`
+
+Si `docker pull ghcr.io/...` échoue, il faut distinguer 2 causes différentes :
+
+- **Cause 1 (auth)** : `denied` ou `403 Forbidden` sur `https://ghcr.io/token`
+- **Cause 2 (architecture)** : `no matching manifest for linux/arm64/v8` (Mac Apple Silicon)
+
+#### 1) Corriger l'authentification GHCR (403/denied)
+
+Pour `docker login ghcr.io`, le "password" n'est pas le mot de passe GitHub :
+il faut utiliser un **Personal Access Token (PAT)** GitHub.
+
+Scopes recommandés :
+- pull uniquement : `read:packages`
+- push + pull : `write:packages` + `read:packages`
+- repo privé (token classic) : ajouter `repo`
+
+Procédure :
+
+```bash
+docker logout ghcr.io
+docker login ghcr.io -u <github-username>
+# Password: coller le PAT GitHub
+docker pull ghcr.io/<owner>/<image>:latest
+```
+
+#### 2) Corriger l'erreur ARM64 sur Mac M1/M2
+
+Si l'auth est OK mais que tu as `no matching manifest for linux/arm64/v8`,
+l'image a été publiée sans variante ARM64.
+
+Solution recommandée dans `/.github/workflows/ci-cd.yml` :
+- ajouter `docker/setup-qemu-action@v3`
+- builder avec `platforms: linux/amd64,linux/arm64`
+
+#### 3) Vérifier le nom exact de l'image GHCR
+
+Avec ce workflow :
+
+```yaml
+IMAGE_NAME: ${{ github.repository }}-airflow
+```
+
+l'image publiée pour ce repo est :
+`ghcr.io/romainr99/anidata-lab-airflow:<tag>`
+
+et non `ghcr.io/romainr99/anidata-airflow:<tag>`.
+
+#### 4) Redéployer Airflow après image GHCR verte
+
+```bash
+docker compose --env-file .env down
+docker compose --env-file .env pull airflow-init airflow-webserver airflow-scheduler
+docker compose --env-file .env up -d postgres airflow-init airflow-webserver airflow-scheduler
+docker compose ps
+```
+
+Attendu :
+- `airflow-init` en `Exited` (normal)
+- `postgres` healthy
+- `airflow-webserver` puis `airflow-scheduler` en `Up`
+
+Exemple de logs (cas validé) :
+
+```text
+[+] Running 5/5
+✔ Network anidata-lab_anidata-network  Created
+✔ Container anidata-postgres           Healthy
+✔ Container anidata-airflow-init       Exited
+✔ Container anidata-airflow-webserver  Started
+✔ Container anidata-airflow-scheduler  Started
+...
+anidata-airflow-scheduler   ghcr.io/romainr99/anidata-lab-airflow:latest   ...   Up
+anidata-airflow-webserver   ghcr.io/romainr99/anidata-lab-airflow:latest   ...   Up (health: starting)
+anidata-postgres            postgres:15-alpine                               ...   Up (healthy)
+```
+
+Lecture rapide de ces logs :
+- `Network ... Created` : le réseau Docker Compose est bien recréé.
+- `postgres ... healthy` : la base Airflow est prête.
+- `airflow-init ... Exited` : normal, c'est un job one-shot d'initialisation.
+- `airflow-webserver ... health: starting` : normal juste après le démarrage, attendre 30-60 secondes puis refaire `docker compose ps`.
+- `airflow-scheduler ... Up` : le scheduler tourne et peut planifier/lancer les DAGs.
+- image affichée `ghcr.io/romainr99/anidata-lab-airflow:latest` : confirme que le déploiement utilise bien l'image GHCR publiée par la CI.
+
+#### 5) Validation E2E (de bout en bout)
+
+Checklist E2E complète :
+
+- [ ] **CI verte** : `lint`, `tests`, `build-and-push` en succès sur le dernier commit `main`.
+- [ ] **Pull GHCR OK** :
+  ```bash
+  docker pull ghcr.io/romainr99/anidata-lab-airflow:latest
+  ```
+- [ ] **Relance Airflow avec l'image GHCR** :
+  ```bash
+  docker compose --env-file .env down
+  docker compose --env-file .env up -d postgres airflow-init airflow-webserver airflow-scheduler
+  docker compose ps
+  ```
+- [ ] **Airflow prêt** :
+  - `airflow-init` = `Exited` (normal)
+  - `postgres` = `healthy`
+  - `airflow-webserver` + `airflow-scheduler` = `Up`
+- [ ] **Trigger DAG scraper** :
+  - ouvrir Airflow UI : `http://localhost:8080`
+  - lancer manuellement le DAG scraper
+- [ ] **Propagation automatique DAG ETL** :
+  - vérifier que le DAG ETL est déclenché automatiquement après succès scraper
+  - vérifier que les tasks ETL passent en `success`
+- [ ] **Validation Grafana** :
+  - ouvrir `http://localhost:3000`
+  - vérifier que les dashboards sont alimentés/rafraîchis avec les nouvelles données
+
+Si tous les points sont cochés, le flux complet
+`CI verte -> GHCR -> compose -> Airflow -> Grafana` est validé.
+
+Automatisation (scripts prêts à l'emploi) :
+
+```bash
+# 1) Pull GHCR + relance Airflow + attente health webserver
+./scripts/deploy_airflow_from_ghcr.sh
+
+# 2) Trigger DAG scraper + attente success + check Elasticsearch
+./scripts/run_e2e_airflow_check.sh
+```
+
+Variables utiles :
+- `AIRFLOW_IMAGE` pour forcer un tag (`latest` ou `sha-...`) dans le script de déploiement
+- `DOWNSTREAM_DAG_ID` pour vérifier un DAG aval optionnel (ex: `anidata_full_pipeline`)
+- `AIRFLOW_BASE_URL`, `AIRFLOW_USER`, `AIRFLOW_PASSWORD` si ton Airflow n'est pas en local par défaut
+
 ### Les imports Airflow sont soulignés dans Cursor (mais ça marche dans Docker)
 
  C'est un avertissement de l'IDE (linter `basedpyright`) et pas un vrai problème d'exécution.
