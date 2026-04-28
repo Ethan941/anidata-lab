@@ -700,10 +700,11 @@ Approche simple et propre recommandée pour ce projet :
 Si tu veux une boucle automatique locale, le script
 `scripts/auto_update_from_push.sh` fait :
 
-1. vérification d'un nouveau commit sur `origin/main`,
-2. `git pull --ff-only`,
-3. déploiement via `./scripts/deploy_airflow_from_ghcr.sh`,
-4. validation via `./scripts/run_e2e_airflow_check.sh`.
+1. vérification d'un nouveau commit sur l'API GitHub (`repos/<owner>/<repo>/commits/main`),
+2. vérification que la CI GitHub Actions (`ci-cd.yml`) est `completed` + `success` pour ce commit,
+3. `git pull --ff-only`,
+4. déploiement via `./scripts/deploy_airflow_from_ghcr.sh`,
+5. validation via `./scripts/run_e2e_airflow_check.sh`.
 
 Installation :
 
@@ -722,7 +723,36 @@ Notes importantes :
 
 - Le script ignore l'exécution si une autre run est déjà en cours (verrou).
 - Le script n'applique rien si ton repo local a des changements non commit (sécurité).
+- Le script mémorise le dernier SHA GitHub traité dans `.state/last_seen_main_sha.txt`.
+- Le déploiement est déclenché seulement après CI verte (pas juste après un push).
+- Tu peux exporter `GITHUB_TOKEN` pour éviter les limites de rate-limit API GitHub.
 - En cas de succès, la plateforme locale est mise à jour automatiquement après chaque push détecté.
+
+### Comprendre les logs `auto_update_from_push.sh`
+
+Exemple de séquence normale :
+
+1. `Checking latest commit on GitHub API`  
+   Le script interroge l'API GitHub pour récupérer le dernier SHA de `main`.
+
+2. `New commit detected on GitHub: <ancien> -> <nouveau>`  
+   Un nouveau commit est détecté par rapport au dernier SHA traité.
+
+3. `Checking CI workflow status: ci-cd.yml`  
+   Le script vérifie la run GitHub Actions associée à ce commit.
+
+4. `CI is green ... Starting deploy pipeline.`  
+   La CI est terminée et en succès (`completed + success`) : le déploiement peut démarrer.
+
+5. `Working tree is not clean, skipping auto-update to avoid conflicts.`  
+   Le script s'arrête volontairement si le repo local contient des changements non commités.
+   C'est une protection pour éviter les conflits ou écrasements pendant `git pull --ff-only`.
+
+Que faire si cette dernière ligne apparaît :
+
+- vérifier l'état local : `git status`
+- soit commit/push, soit `git stash`, soit nettoyer les fichiers non voulus
+- relancer : `./scripts/auto_update_from_push.sh`
 
 ---
 
