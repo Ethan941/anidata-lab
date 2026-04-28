@@ -317,6 +317,21 @@ Le workflow `/.github/workflows/ci-cd.yml` automatise les contrôles qualité à
 Objectif : empêcher l’intégration de changements cassés et garantir un niveau
 minimum de qualité avant merge.
 
+### Ruff : où c'est configuré et à quoi ça sert
+
+`ruff` est bien utilisé dans ce repo pour standardiser le style Python et détecter
+vite les erreurs simples (imports inutilisés, variables non utilisées, règles de
+qualité), avant qu'elles n'arrivent en production.
+
+Configuration et usage :
+
+- **Config locale** : `anidata-scraper/pyproject.toml` (`[tool.ruff]`, lint + format)
+- **Dépendance dev** : `anidata-scraper/requirements-dev.txt` (`ruff>=0.5`)
+- **CI** : `.github/workflows/ci-cd.yml` lance `ruff check anidata_scraper/ tests/`
+- **Documentation** : présent dans `README.md` et `anidata-scraper/README.md`
+
+Conclusion : le lint `ruff` est actif à la fois en local (si tu l'exécutes) et en CI.
+
 ### Focus sur `ci-cd.yml` (lignes 64-67)
 
 Dans le job `tests`, ce bloc :
@@ -679,6 +694,35 @@ Approche simple et propre recommandée pour ce projet :
 2. ajouter un job `deploy-local` sur un runner self-hosted qui exécute :
    - `./scripts/deploy_airflow_from_ghcr.sh`
    - `./scripts/run_e2e_airflow_check.sh`
+
+### Automatisation locale avec cron (toutes les 5 minutes)
+
+Si tu veux une boucle automatique locale, le script
+`scripts/auto_update_from_push.sh` fait :
+
+1. vérification d'un nouveau commit sur `origin/main`,
+2. `git pull --ff-only`,
+3. déploiement via `./scripts/deploy_airflow_from_ghcr.sh`,
+4. validation via `./scripts/run_e2e_airflow_check.sh`.
+
+Installation :
+
+```bash
+chmod +x scripts/auto_update_from_push.sh
+crontab -e
+```
+
+Ajouter la ligne suivante (exécution toutes les 5 minutes) :
+
+```cron
+*/5 * * * * cd /Users/romain/Downloads/anidata-lab && ./scripts/auto_update_from_push.sh >> /tmp/anidata_auto_update.log 2>&1
+```
+
+Notes importantes :
+
+- Le script ignore l'exécution si une autre run est déjà en cours (verrou).
+- Le script n'applique rien si ton repo local a des changements non commit (sécurité).
+- En cas de succès, la plateforme locale est mise à jour automatiquement après chaque push détecté.
 
 ---
 
