@@ -754,6 +754,23 @@ Que faire si cette dernière ligne apparaît :
 - soit commit/push, soit `git stash`, soit nettoyer les fichiers non voulus
 - relancer : `./scripts/auto_update_from_push.sh`
 
+Exemple réel : CI encore en cours (attente du prochain cron)
+
+```text
+./scripts/auto_update_from_push.sh
+[2026-04-28 09:34:07] Checking latest commit on GitHub API: RomainR99/anidata-lab@main
+[2026-04-28 09:34:08] New commit detected on GitHub: <none> -> 805b5bdd3a207e2da7d18946b46e164182ffca54
+[2026-04-28 09:34:08] Checking CI workflow status: ci-cd.yml for 805b5bdd3a207e2da7d18946b46e164182ffca54
+[2026-04-28 09:34:08] CI not finished yet for 805b5bdd3a207e2da7d18946b46e164182ffca54 (status=in_progress). Waiting next cron run.
+```
+
+Interprétation :
+
+- le commit est bien détecté
+- la CI n'est pas encore terminée
+- le script n'applique aucun déploiement tant que la run n'est pas `completed + success`
+- au prochain passage cron, le script re-tente automatiquement
+
 ---
 
 ## ⚡ Commandes utiles
